@@ -17,7 +17,7 @@ export function SiteHeader({ activeRoute, onNavigate, onAuthAction }: SiteHeader
   return (
     <header className="site-header">
       <button className="brand-button" type="button" onClick={() => onNavigate('home')}>
-        <span className="brand-mark">SCP</span>
+        <span className="brand-mark"></span>
         <span>
           <strong>Sky Creator Pro</strong>
           <small>Creator workflow studio</small>
