@@ -917,10 +917,10 @@ p {
 
 .download-hero {
   position: relative;
-  display: grid;
+  display: flex;
   min-height: 760px;
   overflow: hidden;
-  align-items: center;
+  align-items: stretch;
   padding: clamp(80px, 10vw, 126px) clamp(22px, 6vw, 80px);
   isolation: isolate;
   background-image: url(https://cdn.builder.io/api/v1/image/assets%2Ff546a15ffe7c4d5795bdf0be745e08c1%2F205493f102d4418b91acbce552cfa8a4);
@@ -1078,6 +1078,10 @@ p {
 
 .download-copy {
   max-width: 760px;
+  background-image: url(https://cdn.builder.io/api/v1/image/assets%2Ff546a15ffe7c4d5795bdf0be745e08c1%2F205493f102d4418b91acbce552cfa8a4);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
 }
 
 .download-copy h1 {
