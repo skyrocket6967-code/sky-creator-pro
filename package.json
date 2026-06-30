@@ -1,0 +1,77 @@
+{
+  "name": "sky-creator-pro",
+  "private": true,
+  "version": "0.1.9",
+  "description": "Sky Creator Pro website and Windows desktop app for creator project workflows.",
+  "author": "Sky Creator Pro",
+  "license": "UNLICENSED",
+  "type": "module",
+  "main": "electron/main.cjs",
+  "packageManager": "pnpm@11.7.0",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build && node scripts/inline-build-css.mjs",
+    "desktop:dev": "pnpm build && electron .",
+    "desktop:preview": "pnpm build && electron .",
+    "desktop:pack": "pnpm build && electron-builder --win dir --x64",
+    "desktop:build": "pnpm build && electron-builder --win nsis --x64",
+    "storage:upload-installer": "node scripts/upload-installer-to-supabase.mjs",
+    "lint": "oxlint",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.108.2",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
+  },
+  "devDependencies": {
+    "@netlify/vite-plugin": "^2.12.8",
+    "@types/node": "^24.13.2",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.2",
+    "electron": "^42.5.0",
+    "electron-builder": "^26.15.3",
+    "oxlint": "^1.69.0",
+    "typescript": "~6.0.2",
+    "vite": "^8.1.0"
+  },
+  "build": {
+    "appId": "com.skycreatorpro.app",
+    "productName": "Sky Creator Pro",
+    "asar": true,
+    "directories": {
+      "buildResources": "build",
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "build/icon.ico",
+      "build/icon.png",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "artifactName": "SkyCreatorProSetup.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Sky Creator Pro",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico"
+    }
+  }
+}
