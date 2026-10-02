@@ -9,7 +9,7 @@ Sky AI is a gaming assistant made by fine-tuning **Qwen3-1.7B** with **4-bit QLo
 | `requirements.txt` | Transformers, TRL, PEFT, Datasets, Accelerate, bitsandbytes |
 | `train.py` | Fine-tunes Qwen3-1.7B and saves the LoRA adapter to `sky-ai-lora/` |
 | `chat.py` | Chat with Sky AI in the terminal |
-| `training.jsonl` | Example training data (109 conversations) |
+| `training.jsonl` | Example training data (122 conversations) |
 
 ## Quick start: double-click
 
@@ -124,8 +124,8 @@ The first run needs internet access to huggingface.co. Check your firewall, VPN 
 **`Paged optimizers are not supported on CPU` warning**
 This only happens without a GPU. See the first item.
 
-**Sky AI still says it's Qwen, or ignores your data**
-Train longer (`--epochs 5`), add more examples that ask the same thing in different ways, and make sure you're running `chat.py` without `--base-only`.
+**Sky AI says it's GPT-3.5 / ChatGPT, or ignores your data**
+Small models often guess they're GPT-3.5 because the internet is full of ChatGPT text. Make sure you retrained after updating `training.jsonl`: delete the `sky-ai-lora` folder, then run `start_sky_ai.bat` or `python train.py`. If it still happens, train longer (`python train.py --epochs 5`) and add more examples that ask the same thing in different ways. Also make sure you're running `chat.py` without `--base-only`.
 
 ## Testing notes
 
