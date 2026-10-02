@@ -8,7 +8,7 @@ Sky AI is a gaming assistant made by fine-tuning **Qwen3-1.7B** with **4-bit QLo
 | `requirements.txt` | Transformers, TRL, PEFT, Datasets, Accelerate, bitsandbytes |
 | `train.py` | Fine-tunes Qwen3-1.7B and saves the LoRA adapter to `sky-ai-lora/` |
 | `chat.py` | Chat with Sky AI in the terminal |
-| `training.jsonl` | Example training data (93 conversations) |
+| `training.jsonl` | Example training data (109 conversations) |
 
 ## 1. Setup (once)
 
@@ -73,8 +73,9 @@ Each line in `training.jsonl` is one conversation:
 
 - You don't need a system message. `train.py` adds the Sky AI system prompt automatically.
 - Multi-turn conversations work: alternate `user` and `assistant`.
-- **Sky Theft:** I don't know anything about your game, so the Sky Theft examples are deliberately general. **Replace them with real facts**: the story, characters, controls, map, missions and tips. Write several versions of the same question too ("What is Sky Theft?", "tell me about sky theft", "what's Sky Theft about"). That's how the model memorizes facts.
-- **More games:** 93 examples is enough to teach the name and style. To teach a lot of game knowledge, aim for 500–2,000+ accurate examples. Quality matters more than quantity, because the model learns mistakes too.
+- **Sky Theft:** the 24 Sky Theft examples cover what you've told me so far: it's an open-world action crime game by Sky the Goat, in open beta at skytheft.net (build 105.8), with an expanding map, missions, homes, inspectable weapons and a new in-game phone. When the game changes, update those lines (especially the build number), and add more facts like the story, characters, controls and map areas. Write several versions of the same question ("What is Sky Theft?", "tell me about sky theft", "what's Sky Theft about"). That's how the model memorizes facts.
+- **Unknowns stay unknown:** for things I don't know, like platforms, price or a secret ending, Sky AI is trained to say it doesn't know and to point to skytheft.net. If you add the real answers, replace those examples.
+- **More games:** about 100 examples is enough to teach the name and style. To teach a lot of game knowledge, aim for 500–2,000+ accurate examples. Quality matters more than quantity, because the model learns mistakes too.
 - With fewer than ~200 examples, use `--epochs 3` to `5`. With thousands, use 1–2.
 - Keep the system prompt in `train.py` and `chat.py` the same. `chat.py` imports it from `train.py`.
 
