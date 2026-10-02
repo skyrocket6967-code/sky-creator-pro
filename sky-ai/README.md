@@ -4,11 +4,18 @@ Sky AI is a gaming assistant made by fine-tuning **Qwen3-1.7B** with **4-bit QLo
 
 | File | What it does |
 |---|---|
+| `start_sky_ai.bat` | Double-click to set up, train (first time) and chat |
 | `setup.bat` | One-time setup: creates `.venv`, installs CUDA PyTorch and the libraries |
 | `requirements.txt` | Transformers, TRL, PEFT, Datasets, Accelerate, bitsandbytes |
 | `train.py` | Fine-tunes Qwen3-1.7B and saves the LoRA adapter to `sky-ai-lora/` |
 | `chat.py` | Chat with Sky AI in the terminal |
 | `training.jsonl` | Example training data (109 conversations) |
+
+## Quick start: double-click
+
+Double-click **`start_sky_ai.bat`**. The first time, it installs everything and trains Sky AI. After that, it goes straight to the chat. To retrain after editing `training.jsonl`, delete the `sky-ai-lora` folder and double-click it again.
+
+The steps below do the same thing by hand.
 
 ## 1. Setup (once)
 
