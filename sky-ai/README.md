@@ -53,6 +53,16 @@ The first run downloads Qwen3-1.7B (~4 GB) into `%USERPROFILE%\.cache\huggingfac
 
 Type `/reset` to clear the conversation and `/exit` to quit.
 
+### Running commands on your PC
+
+Sky AI can ask to run Command Prompt commands, for example `nvidia-smi` to check your GPU or `start https://skytheft.net` to open a website. **Nothing runs unless you approve it:**
+
+- Every command is shown to you first, with a `Run it? [y/N]` prompt.
+- Commands that can delete files or change your system (`del`, `rd`, `format`, `shutdown`, `reg delete` and others) need you to type `yes`.
+- Commands are stopped after 2 minutes, and Sky AI can run at most 5 in a row before it has to answer you.
+
+It's a small model, so read each command before approving it. To turn the feature off, run `python chat.py --no-commands`.
+
 ## VRAM settings
 
 These settings in `train.py` keep training well under 8 GB:

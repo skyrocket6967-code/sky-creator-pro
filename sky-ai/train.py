@@ -32,13 +32,35 @@ OUTPUT_DIR = "sky-ai-lora"
 # Added to every training example that doesn't already have a system message.
 # chat.py uses the exact same text, so keep the two in sync.
 SYSTEM_PROMPT = (
-    "You are Sky AI, a friendly and knowledgeable gaming assistant created by Sky the Goat. "
+    "You are Sky AI, a friendly and knowledgeable assistant created by Sky the Goat. "
     "You run on Qwen3-1.7B, an open-source model from Alibaba's Qwen team that Sky the Goat "
     "fine-tuned. You are not GPT-3.5, ChatGPT or any OpenAI model. "
-    "You know a lot about video games like Fortnite, Minecraft, Grand Theft Auto and "
-    "Sky Theft, the open-world action crime game by Sky the Goat. Give clear, accurate, "
-    "helpful answers. If you don't know something, say so instead of making it up."
+    "You know a lot about video games, GTA modding, gaming YouTubers, coding, and Sky the Goat's "
+    "projects: the game Sky Theft, the app Sky Creator Pro and the YouTube channel @skythegoat999. "
+    "You run on the user's Windows PC and can use the run_command tool when they ask you to do "
+    "something on their computer. Give clear, accurate, helpful answers. If you don't know "
+    "something, say so instead of making it up."
 )
+
+# The one tool Sky AI can call. chat.py shows every command to the user and only runs it
+# after they approve it. Added to every training example so training matches chat.py.
+TOOLS = [
+    {
+        "type": "function",
+        "function": {
+            "name": "run_command",
+            "description": (
+                "Run a Windows Command Prompt (cmd.exe) command on the user's PC and return its "
+                "output. The user must approve every command before it runs."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {"command": {"type": "string", "description": "The cmd.exe command to run"}},
+                "required": ["command"],
+            },
+        },
+    }
+]
 
 
 def parse_args():
@@ -95,19 +117,41 @@ def load_jsonl(path):
             if not isinstance(messages, list) or not messages:
                 sys.exit(f"ERROR: {path} line {line_no} needs a non-empty 'messages' list.")
             for m in messages:
-                if m.get("role") not in ("system", "user", "assistant") or not isinstance(m.get("content"), str):
+                if m.get("role") not in ("system", "user", "assistant", "tool") or not isinstance(m.get("content"), str):
                     sys.exit(f"ERROR: {path} line {line_no}: each message needs a role and string content.")
+                for call in m.get("tool_calls") or []:
+                    if not isinstance(call.get("function", {}).get("name"), str):
+                        sys.exit(f"ERROR: {path} line {line_no}: each tool call needs a function name.")
             if not any(m["role"] == "assistant" for m in messages):
                 sys.exit(f"ERROR: {path} line {line_no} has no assistant message to learn from.")
 
             if messages[0]["role"] != "system":
                 messages = [{"role": "system", "content": SYSTEM_PROMPT}] + messages
-            rows.append({"messages": messages})
+            # Every message gets the same keys so the datasets library can store them in one table.
+            messages = [{"role": m["role"], "content": m["content"], "tool_calls": m.get("tool_calls")} for m in messages]
+            # A JSON string keeps the nested tool schema simple to store; TRL decodes it.
+            rows.append({"messages": messages, "tools": json.dumps(record.get("tools", TOOLS))})
 
     if not rows:
         sys.exit(f"ERROR: {path} is empty.")
     print(f"Loaded {len(rows)} training conversations from {path}")
     return Dataset.from_list(rows)
+
+
+def drop_too_long(dataset, tokenizer, max_length):
+    """Truncated examples lose their end-of-reply token, which teaches the model to ramble on."""
+    def fits(example):
+        ids = tokenizer.apply_chat_template(
+            example["messages"], tools=json.loads(example["tools"]), tokenize=True, return_dict=True
+        )["input_ids"]
+        return len(ids) <= max_length
+
+    kept = dataset.filter(fits)
+    dropped = len(dataset) - len(kept)
+    if dropped:
+        print(f"NOTE: skipped {dropped} example(s) longer than {max_length} tokens. "
+              "Shorten them, or train with a bigger --max-length if you have spare VRAM.")
+    return kept
 
 
 def load_model_and_tokenizer(model_id):
@@ -140,6 +184,7 @@ def main():
 
     dataset = load_jsonl(args.data)
     model, tokenizer = load_model_and_tokenizer(args.model)
+    dataset = drop_too_long(dataset, tokenizer, args.max_length)
 
     # Only train on Sky AI's replies, not on the system prompt or the user's questions.
     # TRL does this by swapping in a copy of the Qwen3 chat template with {% generation %}
