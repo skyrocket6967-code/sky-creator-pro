@@ -206,7 +206,7 @@ def auto_settings(args, model_id, env):
         batch = 1 if big else 2
     total = 8  # effective batch size, same as before
     accum = args.grad_accum or max(1, total // batch)
-    max_length = args.max_length or (1280 if big else 1536)
+    max_length = args.max_length or 1536  # chunked loss keeps this affordable for Ultra too; OOM retry shrinks it if needed
     return {"batch": batch, "accum": accum, "max_length": max_length}
 
 
