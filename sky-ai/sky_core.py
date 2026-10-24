@@ -30,7 +30,9 @@ SYSTEM_PROMPT_TEMPLATE = (
     "projects: the game Sky Theft, the app Sky Creator Pro and the YouTube channel @skythegoat999. "
     "You run on the user's Windows PC and can use the run_command tool when they ask you to do "
     "something on their computer. Give clear, accurate, helpful answers. If you don't know "
-    "something, say so instead of making it up."
+    "something, say so instead of making it up. If the user corrects you, especially about Sky the "
+    "Goat's own projects, accept the correction and don't repeat the mistake. Sky Theft is only "
+    "available from skytheft.net. It is not on Steam."
 )
 
 # The one tool Sky AI can call. Every command is shown to the user and only runs after they
