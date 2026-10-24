@@ -56,7 +56,7 @@ Turn the feature off with the **Allow PC commands** switch.
 ## Training
 
 - `python train.py`: Standard, **Qwen3-1.7B**.
-- `python train.py --ultra`: Ultra, **Qwen3-4B**. Smarter but slower: training takes roughly 2–3× as long, and the first run downloads ~8 GB. The app always loads whichever model was trained last and shows its name.
+- `python train.py --ultra` (or double-click **`train_ultra.bat`**): Ultra, **Qwen3-4B**. Smarter but slower: training takes roughly 2–3× as long, and the first run downloads ~8 GB. The app always loads whichever model was trained last and shows its name.
 - `python train.py --check-data`: validate the data only.
 - `python train.py --restore`: put the previous model back.
 - `python train.py --epochs 5`: train longer if facts don't stick.
@@ -111,6 +111,12 @@ You may be offline, or DuckDuckGo may have asked for a captcha after many search
 
 **Sky AI says something wrong about your project**
 Correct it in chat and save the correction, or fix the fact in `knowledge/*.md`. If it's a claim it should never make, add a guard.
+
+**`Activate.ps1 cannot be loaded because running scripts is disabled`** (PowerShell)
+Skip `activate` and run the project's Python directly, like `.venv\Scripts\python.exe train.py --ultra`. Or use the .bat files, which don't need it.
+
+**`ModuleNotFoundError: No module named 'torch'`**
+You ran your system Python instead of the project's. Use `.venv\Scripts\python.exe ...` or the .bat files.
 
 **`python` opens the Microsoft Store**
 Install Python from python.org with "Add to PATH" ticked.
