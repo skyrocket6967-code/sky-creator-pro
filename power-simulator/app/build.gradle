@@ -1,0 +1,43 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.skyrocket.powersim'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.skyrocket.powersim'
+        minSdk 24
+        targetSdk 35
+        versionCode 1
+        versionName '1.0'
+    }
+
+    // Same key as build-apk.sh, so APKs from either build install over each other.
+    signingConfigs {
+        shared {
+            storeFile file('../keystore/debug.keystore')
+            storePassword 'android'
+            keyAlias 'powersim'
+            keyPassword 'android'
+        }
+    }
+
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.shared
+        }
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt')
+            signingConfig signingConfigs.shared
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
