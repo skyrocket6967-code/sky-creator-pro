@@ -28,7 +28,9 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
 os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 
+import knowledge
 import sky_core
+import websearch
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 UI_FILE = os.path.join(HERE, "ui", "index.html")
@@ -45,15 +47,15 @@ class App:
         self.token = secrets.token_urlsafe(24)  # proves a request came from our own window
         self.port = None
         self.model = self.tokenizer = self.info = None
+        self.kb = knowledge.KnowledgeBase()
+        self.memory = knowledge.Memory()
         self.state, self.message = "loading", "Starting up..."
         self.busy = threading.Lock()  # one reply at a time on one GPU
         self.stop_event = threading.Event()
-        self.approvals = {}  # command id -> [threading.Event, approved?]
-        self.approvals_lock = threading.Lock()
+        self.decisions = {}  # card id -> [threading.Event, approved?, edited text]
+        self.decisions_lock = threading.Lock()
         self.last_seen = None
         self.generating = False
-
-    # ---------------------------------------------------------------- model
 
     def load(self):
         try:
@@ -65,34 +67,54 @@ class App:
                 device="cpu" if self.args.cpu else "cuda",
             )
             self.message = "Warming up..."
-            ids = sky_core.build_inputs(self.tokenizer, self.info["system_prompt"],
+            ids = sky_core.build_inputs(self.tokenizer, sky_core.base_prompt(self.info["model_id"]),
                                         [{"role": "user", "content": "hi"}], sky_core.TOOLS)
             for _ in sky_core.stream_generate(self.model, self.tokenizer, ids, {"max_new_tokens": 1}):
                 pass
             self.state, self.message = "ready", "Ready"
-            print(f"Sky AI is ready: {self.info['model']} on {self.info['device']} ({self.info['mode']})")
         except Exception as e:  # show the problem in the window instead of a dead app
             traceback.print_exc()
             self.state = "error"
             self.message = friendly_error(e)
 
-    # ---------------------------------------------------------------- approvals
-
-    def wait_for_approval(self, command_id):
-        with self.approvals_lock:
-            entry = self.approvals.setdefault(command_id, [threading.Event(), False])
+    def wait_for(self, card_id):
+        """Block until the window answers a Run/Skip or Save/Don't save card."""
+        with self.decisions_lock:
+            entry = self.decisions.setdefault(card_id, [threading.Event(), False, None])
         while not entry[0].wait(0.5):
             if self.stop_event.is_set():
-                return False
-        with self.approvals_lock:
-            self.approvals.pop(command_id, None)
-        return entry[1]
+                return False, None
+        with self.decisions_lock:
+            self.decisions.pop(card_id, None)
+        return entry[1], entry[2]
 
-    def decide(self, command_id, approved):
-        with self.approvals_lock:
-            entry = self.approvals.setdefault(command_id, [threading.Event(), False])
-            entry[1] = bool(approved)
+    def decide(self, card_id, approved, text=None):
+        with self.decisions_lock:
+            entry = self.decisions.setdefault(card_id, [threading.Event(), False, None])
+            entry[1], entry[2] = bool(approved), text
             entry[0].set()
+
+
+class AppCallbacks(sky_core.Callbacks):
+    def __init__(self, app, send):
+        self.app, self.send, self.n, self.current = app, send, 0, None
+
+    def next_id(self):
+        self.n += 1
+        return f"{int(time.time() * 1000)}-{self.n}"
+
+    def approve_command(self, command, purpose, dangerous):
+        approved, _ = self.app.wait_for(self.current)
+        return approved
+
+    def approve_memory(self, fact):
+        approved, text = self.app.wait_for(self.current)
+        if not approved:
+            return None
+        return self.app.memory.add(text or fact, source="Sky AI suggestion, approved by user")["text"]
+
+    def search(self, query, official_urls=()):
+        return websearch.research(query, official_urls=official_urls)
 
 
 def friendly_error(e):
@@ -134,8 +156,6 @@ def make_handler(app):
         def log_message(self, fmt, *args):  # keep the console quiet
             pass
 
-        # ---------------------------------------------------------- helpers
-
         def allowed(self):
             # Only our own window: right host (blocks DNS-rebinding) and the secret token
             # (other websites can't read our page, so they can't know it).
@@ -159,8 +179,6 @@ def make_handler(app):
                 raise ValueError("request too large")
             return json.loads(self.rfile.read(length) or b"{}")
 
-        # ---------------------------------------------------------- routes
-
         def do_GET(self):
             if not self.allowed():
                 return self.send_error(403)
@@ -181,14 +199,12 @@ def make_handler(app):
             elif self.path == "/api/status":
                 info = app.info or {}
                 self.send_json({
-                    "state": app.state,
-                    "message": app.message,
-                    "model": info.get("model"),
-                    "mode": info.get("mode"),
-                    "device": info.get("device"),
+                    "state": app.state, "message": app.message, "generating": app.generating,
                     "base_only": bool(app.args.base_only),
-                    "generating": app.generating,
+                    **{k: info.get(k) for k in ("model", "params", "mode", "device", "trained", "load_seconds", "vram_gb")},
                 })
+            elif self.path == "/api/memory":
+                self.send_json({"facts": app.memory.all()})
             else:
                 self.send_error(404)
 
@@ -203,12 +219,30 @@ def make_handler(app):
             if self.path == "/api/chat":
                 return self.chat(body)
             if self.path == "/api/approve":
-                app.decide(str(body.get("id")), body.get("approve"))
+                text = body.get("text")
+                app.decide(str(body.get("id")), body.get("approve"), str(text) if text else None)
                 return self.send_json({"ok": True})
             if self.path == "/api/stop":
                 app.stop_event.set()
                 return self.send_json({"ok": True})
+            if self.path == "/api/memory":
+                return self.memory(body)
             self.send_error(404)
+
+        def memory(self, body):
+            action = body.get("action")
+            try:
+                if action == "add":
+                    app.memory.add(body.get("text", ""), source="added by user")
+                elif action == "update":
+                    app.memory.update(str(body.get("id")), body.get("text", ""))
+                elif action == "delete":
+                    app.memory.delete(str(body.get("id")))
+                else:
+                    return self.send_json({"error": "unknown action"}, 400)
+            except (KeyError, ValueError) as e:
+                return self.send_json({"error": str(e)}, 400)
+            self.send_json({"facts": app.memory.all()})
 
         def chat(self, body):
             if app.state != "ready":
@@ -221,44 +255,58 @@ def make_handler(app):
                 if not text:
                     return self.send_json({"error": "empty message"}, 400)
                 history.append({"role": "user", "content": text})
-                tools = sky_core.TOOLS if body.get("commands", True) else None
-                temperature = min(max(float(body.get("temperature", 0.7)), 0.1), 1.5)
-                settings = {"temperature": temperature, "max_new_tokens": app.args.max_new_tokens}
+                style = body.get("style") if body.get("style") in sky_core.STYLES else "balanced"
+                settings = {"style": style, "web": bool(body.get("web")), "commands": bool(body.get("commands", True)),
+                            "max_new_tokens": app.args.max_new_tokens}
 
                 # Stream newline-delimited JSON events; the window reads them as they arrive.
                 self.send_response(200)
                 self.send_header("Content-Type", "application/x-ndjson")
                 self.send_header("Cache-Control", "no-store")
-                self.send_header("X-Accel-Buffering", "no")
                 self.end_headers()
                 app.stop_event.clear()
                 app.generating = True
-                counter = [0]
-                current = {}
 
                 def send(event):
                     self.wfile.write((json.dumps(event) + "\n").encode("utf-8"))
                     self.wfile.flush()
 
-                def approve(command, dangerous):
-                    return app.wait_for_approval(current["id"])
-
-                started = time.time()
+                cb = AppCallbacks(app, send)
                 try:
-                    for event in sky_core.agent_turn(app.model, app.tokenizer, app.info["system_prompt"],
-                                                     history, tools, settings, approve, app.stop_event):
-                        kind = event[0]
+                    for ev in sky_core.agent_turn(app.model, app.tokenizer, app.info, history, settings, cb,
+                                                  app.kb, app.memory, app.stop_event):
+                        kind = ev[0]
                         if kind == "text":
-                            send({"t": "text", "v": event[1]})
+                            send({"t": "text", "v": ev[1]})
+                        elif kind == "context":
+                            send({"t": "context", "sources": ev[1]["sources"], "corrections": len(ev[1]["corrections"])})
+                        elif kind == "search":
+                            cb.current = cb.next_id()
+                            send({"t": "search", "id": cb.current, "query": ev[1]})
+                        elif kind == "search_done":
+                            r = ev[1]
+                            send({"t": "search_done", "id": cb.current, "errors": r["errors"],
+                                  "sources": [{k: s.get(k) for k in ("n", "title", "url", "snippet_only")} for s in r["sources"]]})
                         elif kind == "command":
-                            counter[0] += 1
-                            current["id"] = f"{int(started * 1000)}-{counter[0]}"
-                            send({"t": "command", "id": current["id"], "command": event[1], "dangerous": event[2]})
+                            cb.current = cb.next_id()
+                            send({"t": "command", "id": cb.current, "command": ev[1], "purpose": ev[2],
+                                  "dangerous": ev[3], "blocked": ev[4]})
                         elif kind == "result":
-                            send({"t": "result", "id": current["id"], "approved": event[2], "output": event[3]})
+                            send({"t": "result", "id": cb.current, "approved": ev[2], "output": ev[3]})
+                        elif kind == "memory":
+                            cb.current = cb.next_id()
+                            send({"t": "memory", "id": cb.current, "fact": ev[1]})
+                        elif kind == "memory_done":
+                            send({"t": "memory_done", "id": cb.current, "saved": ev[1]})
+                        elif kind == "replace":
+                            send({"t": "replace", "v": ev[1], "note": ev[2]})
+                        elif kind == "suggest_memory":
+                            send({"t": "suggest_memory", "v": ev[1]})
+                        elif kind == "stats":
+                            send({"t": "stats", **ev[1]})
                         elif kind == "limit":
-                            send({"t": "notice", "v": f"Stopped after {sky_core.MAX_COMMANDS_PER_TURN} commands in a row."})
-                    send({"t": "done", "history": history, "seconds": round(time.time() - started, 1)})
+                            send({"t": "notice", "v": f"Stopped after {sky_core.MAX_TOOL_ROUNDS} tool steps in a row."})
+                    send({"t": "done", "history": history})
                 except (BrokenPipeError, ConnectionResetError):
                     app.stop_event.set()  # the window went away mid-reply
                 except Exception as e:
@@ -327,7 +375,7 @@ def main():
     threading.Thread(target=server.serve_forever, daemon=True).start()
     print(f"Sky AI Ultra is running at {url}")
     if not args.no_window:
-        open_window(url)
+        open_window(url)  # the window shows a loading screen while the model loads
     print("Close the window or press Ctrl+C here to quit.")
     app.load()
 

@@ -220,6 +220,47 @@
     .welcome h1 { font-size: 27px; }
     .model-chip { display: none; }
   }
+
+  /* ---------- search, memory, purpose ---------- */
+  .cmd-purpose { font-size: 13px; color: var(--text); margin-top: 8px; }
+  .cmd.search { border-color: rgba(96, 165, 250, 0.35); background: linear-gradient(180deg, rgba(96, 165, 250, 0.07), rgba(96, 165, 250, 0.02)); }
+  .cmd.search .cmd-head svg { color: #60a5fa; }
+  .cmd.memory { border-color: rgba(167, 139, 250, 0.4); background: linear-gradient(180deg, rgba(167, 139, 250, 0.08), rgba(167, 139, 250, 0.02)); }
+  .cmd.memory .cmd-head svg { color: #a78bfa; }
+  .source-list { margin: 2px 0 0; padding-left: 22px; font-size: 13.5px; width: 100%; }
+  .source-list li { margin: 3px 0; }
+  .source-list a { color: var(--accent); text-decoration: none; }
+  .source-list a:hover { text-decoration: underline; }
+  .domain { color: var(--faint); font-size: 12px; margin-left: 8px; }
+  .mem-text { width: 100%; min-height: 58px; background: #05070a; border: 1px solid var(--border-strong); border-radius: 9px; color: var(--text);
+    font: 13.5px/1.5 var(--font); padding: 8px 10px; resize: vertical; margin: 10px 0; outline: none; }
+  .mem-text:focus { border-color: rgba(167, 139, 250, 0.6); }
+  .chips { display: inline-flex; gap: 6px; flex-wrap: wrap; margin-left: 8px; vertical-align: middle; }
+  .chip { font-size: 11px; color: var(--muted); border: 1px solid var(--border); border-radius: 999px; padding: 0 8px; }
+  .fixed-note { font-size: 12px; color: var(--ok); margin-top: 6px; }
+  .segmented { display: flex; background: var(--panel-2); border: 1px solid var(--border); border-radius: 9px; padding: 2px; }
+  .segmented button { flex: 1; border: 0; background: none; color: var(--muted); font-size: 12px; padding: 5px 4px; border-radius: 7px; }
+  .segmented button:hover { color: var(--text); }
+  .segmented button.on { background: var(--raised); color: var(--text); box-shadow: inset 0 0 0 1px rgba(34, 211, 238, 0.35); }
+  .setting-col { display: flex; flex-direction: column; gap: 6px; padding: 0 4px; font-size: 13px; color: var(--muted); }
+  .mem-open { display: flex; align-items: center; gap: 8px; border: 1px solid var(--border); background: var(--panel-2); border-radius: 11px; padding: 9px 12px; font-size: 13px; }
+  .mem-open svg { width: 16px; height: 16px; color: #a78bfa; }
+  .mem-open:hover { border-color: rgba(167, 139, 250, 0.5); }
+  .mem-count { margin-left: auto; color: var(--faint); font-size: 12px; }
+  .modal { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.6); display: none; align-items: center; justify-content: center; z-index: 50; padding: 16px; }
+  .modal.open { display: flex; }
+  .modal-box { width: min(640px, 100%); max-height: 85vh; overflow: auto; background: var(--panel); border: 1px solid var(--border-strong); border-radius: 16px; padding: 20px; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5); }
+  .modal-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .modal-head h2 { margin: 0; font-size: 18px; }
+  .modal-sub { color: var(--muted); font-size: 13.5px; margin: 6px 0 14px; }
+  .mem-item { border: 1px solid var(--border); border-radius: 11px; padding: 10px 12px; margin-bottom: 8px; background: var(--panel-2); }
+  .mem-fact { white-space: pre-wrap; }
+  .mem-item .meta-line { font-size: 11.5px; color: var(--faint); margin-top: 4px; }
+  .mem-item .row { display: flex; gap: 6px; margin-top: 8px; }
+  .mem-add { display: flex; gap: 8px; margin-top: 12px; align-items: flex-start; }
+  .mem-add .mem-text { margin: 0; min-height: 40px; }
+  .mem-empty { color: var(--faint); font-size: 13px; padding: 10px 0; }
+  .btn.small { padding: 4px 10px; font-size: 12.5px; }
 </style>
 </head>
 <body>
@@ -255,12 +296,23 @@
         <span class="dot"></span>
         <div><div class="status-title" id="statusTitle">Starting...</div><div class="status-sub" id="statusSub">Connecting</div></div>
       </div>
+      <button class="mem-open" id="memOpen" title="Facts you've confirmed. Sky AI uses them in every chat.">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4a3 3 0 0 0-3 3 3 3 0 0 0-2 5 3 3 0 0 0 2 5 3 3 0 0 0 3 3V4zM15 4a3 3 0 0 1 3 3 3 3 0 0 1 2 5 3 3 0 0 1-2 5 3 3 0 0 1-3 3V4z"/></svg>
+        Memory <span class="mem-count" id="memCount">0 facts</span>
+      </button>
       <label class="setting">Allow PC commands
         <span class="switch"><input type="checkbox" id="cmdToggle" checked><span></span></span>
       </label>
-      <label class="setting">Creativity
-        <input type="range" id="temp" min="0.1" max="1.2" step="0.1" value="0.7">
+      <label class="setting" title="Lets Sky AI look things up online. Off = fully offline.">Web search
+        <span class="switch"><input type="checkbox" id="webToggle"><span></span></span>
       </label>
+      <div class="setting-col">Response style
+        <div class="segmented" id="style">
+          <button data-style="precise" title="Most factual, least random">Precise</button>
+          <button data-style="balanced" class="on">Balanced</button>
+          <button data-style="creative" title="For stories, lyrics and ideas">Creative</button>
+        </div>
+      </div>
     </div>
   </aside>
   <div class="scrim" id="scrim"></div>
@@ -300,6 +352,15 @@
       <div class="hint">Sky AI runs on your PC and can make mistakes. Commands only run when you approve them.</div>
     </footer>
   </main>
+
+  <div class="modal" id="memModal" role="dialog" aria-modal="true" aria-labelledby="memTitle">
+    <div class="modal-box">
+      <div class="modal-head"><h2 id="memTitle">Sky AI's memory</h2><button class="btn small" id="memClose">Close</button></div>
+      <div class="modal-sub">Facts you've confirmed, like corrections about your projects. Sky AI uses them in every chat and trusts them over its own training. Edit or delete anything that's wrong. No retraining needed.</div>
+      <div id="memList"></div>
+      <div class="mem-add"><textarea class="mem-text" id="memNew" placeholder="Add a fact, e.g. Sky Theft is not on Steam. It's only on skytheft.net."></textarea><button class="btn primary" id="memAdd">Add</button></div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -326,14 +387,15 @@ function load() {
   } catch (e) { chats = []; }
   try { const s = JSON.parse(localStorage.getItem("skyai.settings") || "{}");
     if (typeof s.commands === "boolean") $("cmdToggle").checked = s.commands;
-    if (s.temperature) $("temp").value = s.temperature;
+    if (typeof s.web === "boolean") $("webToggle").checked = s.web;
+    if (s.style) setStyle(s.style);
   } catch (e) {}
 }
 function save() {
   try { localStorage.setItem(STORE_KEY, JSON.stringify({ chats, currentId })); } catch (e) {}
 }
 function saveSettings() {
-  try { localStorage.setItem("skyai.settings", JSON.stringify({ commands: $("cmdToggle").checked, temperature: $("temp").value })); } catch (e) {}
+  try { localStorage.setItem("skyai.settings", JSON.stringify({ commands: $("cmdToggle").checked, web: $("webToggle").checked, style: currentStyle() })); } catch (e) {}
 }
 function currentChat() { return chats.find((c) => c.id === currentId) || null; }
 
@@ -400,76 +462,156 @@ function md(src) {
 
 // ---------------------------------------------------------------- rendering
 const thread = $("thread");
+const ICON_GLOBE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3z"/></svg>';
+const ICON_BRAIN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4a3 3 0 0 0-3 3 3 3 0 0 0-2 5 3 3 0 0 0 2 5 3 3 0 0 0 3 3V4zM15 4a3 3 0 0 1 3 3 3 3 0 0 1 2 5 3 3 0 0 1-2 5 3 3 0 0 1-3 3V4z"/></svg>';
+function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
 function scrollDown(force) {
   const s = $("scroller");
   if (force || s.scrollHeight - s.scrollTop - s.clientHeight < 160) s.scrollTop = s.scrollHeight;
 }
 function addUser(text) {
-  const el = document.createElement("div");
-  el.className = "msg user";
-  el.innerHTML = '<div class="bubble"></div>';
-  el.firstChild.textContent = text;
-  thread.appendChild(el);
-  return el;
+  const m = el("div", "msg user");
+  m.appendChild(el("div", "bubble", text));
+  thread.appendChild(m);
+  return m;
 }
 function addBot() {
-  const el = document.createElement("div");
-  el.className = "msg bot";
-  el.innerHTML = '<svg class="avatar"><use href="#logo"/></svg><div class="body"><div class="name">SKY AI</div><div class="md"></div></div>';
-  thread.appendChild(el);
-  return el.querySelector(".md");
+  const m = el("div", "msg bot");
+  m.innerHTML = '<svg class="avatar"><use href="#logo"/></svg><div class="body"><div class="name">SKY AI</div><div class="md"></div></div>';
+  thread.appendChild(m);
+  return m.querySelector(".md");
 }
-function addNotice(text, isError) {
-  const el = document.createElement("div");
-  el.className = "notice" + (isError ? " error" : "");
-  el.textContent = text;
-  thread.appendChild(el);
+function addNotice(text, isError) { thread.appendChild(el("div", "notice" + (isError ? " error" : ""), text)); }
+function card(cls, icon, title) {
+  const c = el("div", "cmd " + cls);
+  c.innerHTML = `<div class="cmd-head">${icon}<span></span></div>`;
+  c.querySelector(".cmd-head span").textContent = title;
+  addBot().appendChild(c);
+  return c;
 }
-function addCommand(command, dangerous, decided) {
-  const box = addBot();
-  const card = document.createElement("div");
-  card.className = "cmd" + (dangerous ? " danger" : "");
-  card.innerHTML = `<div class="cmd-head">${ICON_TERM}<span>Sky AI wants to run a command</span></div><div class="cmd-line"></div>`;
-  card.querySelector(".cmd-line").textContent = command;
-  if (dangerous && !decided) {
-    card.insertAdjacentHTML("beforeend", '<div class="cmd-warn">This command can delete files or change your system. Type <b>yes</b> to run it.</div>');
-  }
-  const actions = document.createElement("div");
-  actions.className = "cmd-actions";
-  card.appendChild(actions);
-  box.appendChild(card);
-  return card;
+function status(c, text, cls) {
+  let a = c.querySelector(".cmd-actions");
+  if (!a) { a = el("div", "cmd-actions"); c.appendChild(a); }
+  a.innerHTML = "";
+  a.appendChild(el("div", "cmd-status " + (cls || ""), text));
 }
-function setCommandResult(card, approved, output) {
-  const actions = card.querySelector(".cmd-actions");
-  const warn = card.querySelector(".cmd-warn");
-  if (warn) warn.remove();
-  actions.innerHTML = approved
-    ? '<div class="cmd-status ok">&#10003; Ran on your PC</div>'
-    : '<div class="cmd-status skip">Skipped</div>';
+
+// Commands
+function addCommand(command, purpose, dangerous, blocked, decided) {
+  const c = card(dangerous || blocked ? "danger" : "", ICON_TERM, "Sky AI wants to run a command");
+  c.appendChild(el("div", "cmd-purpose", purpose ? "Purpose: " + purpose : "Purpose: (Sky AI didn't say)"));
+  c.appendChild(el("div", "cmd-line", command));
+  if (blocked) c.appendChild(el("div", "cmd-warn", "Blocked: this command could wipe data or stop Windows from starting, so Sky AI will never run it."));
+  else if (dangerous && !decided) c.insertAdjacentHTML("beforeend", '<div class="cmd-warn">This command can delete files or change your system. Type <b>yes</b> to run it.</div>');
+  c.appendChild(el("div", "cmd-actions"));
+  return c;
+}
+function setCommandResult(c, approved, output, how) {
+  const warn = c.querySelector(".cmd-warn");
+  if (warn && how !== "blocked") warn.remove();
+  if (how === "blocked") return status(c, "Blocked by safety rules", "skip");
+  if (how === "off") return status(c, "Not run: PC commands are turned off", "skip");
+  status(c, approved ? "✓ Ran on your PC" : "Skipped", approved ? "ok" : "skip");
   if (approved && output) {
-    const d = document.createElement("details");
-    d.className = "cmd-output";
+    const d = el("details", "cmd-output");
     d.innerHTML = "<summary>Output</summary><pre></pre>";
     d.querySelector("pre").textContent = output;
     if (output.split("\n").length <= 12) d.open = true;
-    card.appendChild(d);
+    c.appendChild(d);
   }
 }
-function askApproval(card, id, dangerous) {
-  const actions = card.querySelector(".cmd-actions");
-  actions.innerHTML = (dangerous ? '<input class="confirm" placeholder="type yes">' : "") +
+function askApproval(c, id, dangerous) {
+  const a = c.querySelector(".cmd-actions");
+  a.innerHTML = (dangerous ? '<input class="confirm" placeholder="type yes">' : "") +
     `<button class="btn ${dangerous ? "red" : "primary"} run">Run</button><button class="btn skip">Skip</button>`;
-  const run = actions.querySelector(".run");
-  const input = actions.querySelector(".confirm");
+  const run = a.querySelector(".run");
+  const input = a.querySelector(".confirm");
   if (input) { run.disabled = true; input.addEventListener("input", () => { run.disabled = input.value.trim().toLowerCase() !== "yes"; }); input.focus(); }
   else run.focus();
-  const decide = (approve) => {
-    actions.innerHTML = '<div class="cmd-status">' + (approve ? "Running..." : "Skipping...") + "</div>";
-    api("/api/approve", { id, approve });
-  };
+  const decide = (approve) => { status(c, approve ? "Running..." : "Skipping..."); api("/api/approve", { id, approve }); };
   run.addEventListener("click", () => decide(true));
-  actions.querySelector(".skip").addEventListener("click", () => decide(false));
+  a.querySelector(".skip").addEventListener("click", () => decide(false));
+}
+
+// Web search
+function domainOf(url) { try { return new URL(url).hostname.replace(/^www\./, ""); } catch (e) { return ""; } }
+function addSearch(query) {
+  const c = card("search", ICON_GLOBE, "Searching the web");
+  c.appendChild(el("div", "cmd-line", query));
+  status(c, "Searching...");
+  return c;
+}
+function setSearchResult(c, sources, errors, how) {
+  c.querySelector(".cmd-head span").textContent = how === "off" ? "Web search is off" : "Searched the web";
+  const a = c.querySelector(".cmd-actions");
+  a.innerHTML = "";
+  if (how === "off") return status(c, "Nothing was searched. Turn on Web search in the sidebar to allow it.", "skip");
+  if (!sources.length) return status(c, "Search failed: " + ((errors || []).join("; ") || "no results"), "skip");
+  const ol = el("ol", "source-list");
+  for (const s of sources) {
+    const li = el("li");
+    const link = el("a", null, s.title || s.url);
+    link.href = s.url; link.target = "_blank"; link.rel = "noopener";
+    li.appendChild(link);
+    li.appendChild(el("span", "domain", domainOf(s.url) + (s.snippet_only ? " (snippet only)" : "")));
+    ol.appendChild(li);
+  }
+  a.appendChild(ol);
+  if (errors && errors.length) {
+    const d = el("details", "cmd-output");
+    d.innerHTML = "<summary>Some pages didn't load</summary><pre></pre>";
+    d.querySelector("pre").textContent = errors.join("\n");
+    c.appendChild(d);
+  }
+}
+function parseSources(text) {
+  const out = [];
+  const re = /^\[(\d+)\] (.+?)(?: \(search snippet only, page didn't load\))?\nURL: (\S+)/gm;
+  let m;
+  while ((m = re.exec(text))) out.push({ n: +m[1], title: m[2], url: m[3], snippet_only: m[0].includes("snippet only") });
+  return out;
+}
+
+// Memory
+function memoryEditor(c, text, onSave, onDismiss, saveLabel) {
+  const ta = el("textarea", "mem-text");
+  ta.value = text;
+  c.appendChild(ta);
+  const a = el("div", "cmd-actions");
+  a.innerHTML = `<button class="btn primary save">${saveLabel || "Save to memory"}</button><button class="btn skip">Don't save</button>`;
+  c.appendChild(a);
+  a.querySelector(".save").addEventListener("click", () => { const t = ta.value.trim(); if (!t) return; ta.remove(); onSave(t); });
+  a.querySelector(".skip").addEventListener("click", () => { ta.remove(); onDismiss(); });
+}
+function addMemoryCard(fact, id) {
+  const c = card("memory", ICON_BRAIN, "Sky AI wants to remember this");
+  if (id) memoryEditor(c, fact,
+    (t) => { status(c, "Saving..."); api("/api/approve", { id, approve: true, text: t }); },
+    () => { status(c, "Not saved", "skip"); api("/api/approve", { id, approve: false }); });
+  else c.appendChild(el("div", "cmd-line", fact));
+  return c;
+}
+function addSuggestion(text) {
+  const c = card("memory", ICON_BRAIN, "You corrected Sky AI. Remember this for future chats?");
+  c.appendChild(el("div", "cmd-purpose", "Edit it into a clear fact, then save. Saved facts are used in every chat and can be changed in Memory."));
+  memoryEditor(c, text, async (t) => {
+    status(c, "Saving...");
+    const r = await api("/api/memory", { action: "add", text: t });
+    if (r.ok) { status(c, "✓ Saved to memory: " + t, "ok"); refreshMemory(); } else status(c, "Couldn't save", "skip");
+  }, () => c.closest(".msg").remove(), "Save fact");
+  scrollDown(true);
+}
+function addMeta(box, stats, ctx) {
+  const parts = [];
+  if (stats && stats.tokens_per_s) parts.push(`${stats.tokens_per_s} tok/s`);
+  if (stats && stats.seconds) parts.push(`${(+stats.seconds).toFixed(1)}s`);
+  const meta = el("div", "meta", parts.join(" · "));
+  if (ctx && ctx.sources && ctx.sources.length) {
+    const chips = el("span", "chips");
+    for (const s of ctx.sources) chips.appendChild(el("span", "chip", "✓ " + s));
+    meta.appendChild(chips);
+  }
+  if (parts.length || (ctx && ctx.sources && ctx.sources.length)) box.after(meta);
 }
 
 function renderChat() {
@@ -478,22 +620,28 @@ function renderChat() {
   const history = chat ? chat.history : [];
   $("welcome").style.display = history.length ? "none" : "";
   $("chatTitle").textContent = chat ? chat.title : "New chat";
-  const pendingCards = [];
+  const pending = [];
   for (const m of history) {
     if (m.role === "user") addUser(m.content);
     else if (m.role === "assistant") {
       if (m.content) addBot().innerHTML = md(m.content);
       for (const call of m.tool_calls || []) {
-        let command = "";
-        try { command = JSON.parse(call.function.arguments).command; } catch (e) { command = String(call.function.arguments); }
-        pendingCards.push(addCommand(command, false, true));
+        let args = {};
+        try { args = JSON.parse(call.function.arguments); } catch (e) {}
+        const name = call.function.name;
+        if (name === "web_search") pending.push({ name, c: addSearch(args.query || "") });
+        else if (name === "remember") pending.push({ name, c: addMemoryCard(args.fact || "", null) });
+        else pending.push({ name, c: addCommand(args.command || "", args.purpose || "", false, false, true) });
       }
     } else if (m.role === "tool") {
-      const card = pendingCards.shift();
-      if (card) {
-        const declined = m.content === DECLINED;
-        setCommandResult(card, !declined, declined ? "" : m.content.replace(/^Exit code -?\d+\n\n/, ""));
-      }
+      const p = pending.shift();
+      if (!p) continue;
+      const t = m.content || "";
+      if (p.name === "web_search") setSearchResult(p.c, parseSources(t), t.includes("FAILED") ? [t.split("\n")[0]] : [], t.startsWith("Web search is turned off") ? "off" : "");
+      else if (p.name === "remember") status(p.c, t.startsWith("Saved to memory") ? "✓ " + t : "Not saved", t.startsWith("Saved") ? "ok" : "skip");
+      else if (t.startsWith("Sky AI's safety rules blocked")) setCommandResult(p.c, false, "", "blocked");
+      else if (t.startsWith("PC commands are turned off")) setCommandResult(p.c, false, "", "off");
+      else setCommandResult(p.c, t !== DECLINED, t === DECLINED ? "" : t.replace(/^Exit code -?\d+\n\n/, ""));
     }
   }
   renderList();
@@ -504,8 +652,7 @@ function renderList() {
   list.innerHTML = "";
   if (!chats.length) { list.innerHTML = '<div class="empty-list">No chats yet</div>'; return; }
   for (const c of [...chats].sort((a, b) => b.updated - a.updated)) {
-    const item = document.createElement("button");
-    item.className = "chat-item" + (c.id === currentId ? " active" : "");
+    const item = el("button", "chat-item" + (c.id === currentId ? " active" : ""));
     item.innerHTML = '<span class="title"></span><span class="del" title="Delete chat">&times;</span>';
     item.querySelector(".title").textContent = c.title;
     item.addEventListener("click", (e) => {
@@ -535,8 +682,12 @@ async function pollStatus() {
     box.className = "status " + (s.state === "ready" ? "ready" : s.state === "error" ? "error" : "");
     ready = s.state === "ready";
     if (ready) {
+      const trained = s.base_only ? "untrained base model" : (s.trained && s.trained.at ? "trained " + s.trained.at : "trained");
       $("statusTitle").textContent = s.base_only ? s.model + " (base)" : "Sky AI is ready";
-      $("statusSub").textContent = `${s.model} · ${s.mode} · ${s.device}`;
+      $("statusSub").textContent = `${s.model} · ${s.mode} · ${trained}`;
+      $("status").title = `${s.model} (${s.params} parameters)\n${s.mode} on ${s.device}\n${trained}` +
+        (s.trained && s.trained.examples ? ` on ${s.trained.examples} examples` : "") +
+        (s.load_seconds ? `\nLoaded in ${s.load_seconds}s` : "") + (s.vram_gb ? ` · ${s.vram_gb} GB VRAM` : "");
       $("modelChip").textContent = `${s.model} · ${s.mode}`;
       $("loadingNote").style.display = "none";
     } else {
@@ -554,6 +705,36 @@ async function pollStatus() {
   }
   updateSend();
 }
+
+// ---------------------------------------------------------------- memory panel
+let memoryFacts = [];
+async function refreshMemory() {
+  try { memoryFacts = (await (await api("/api/memory")).json()).facts || []; } catch (e) { return; }
+  $("memCount").textContent = memoryFacts.length === 1 ? "1 fact" : `${memoryFacts.length} facts`;
+  const list = $("memList");
+  list.innerHTML = "";
+  if (!memoryFacts.length) list.appendChild(el("div", "mem-empty", "No saved facts yet. When you correct Sky AI, it will offer to remember the correction."));
+  for (const f of [...memoryFacts].reverse()) {
+    const item = el("div", "mem-item");
+    item.appendChild(el("div", "mem-fact", f.text));
+    item.appendChild(el("div", "meta-line", `Saved ${f.created}${f.updated && f.updated !== f.created ? " · edited " + f.updated : ""}${f.source ? " · " + f.source : ""}`));
+    const row = el("div", "row");
+    const edit = el("button", "btn small", "Edit"), del = el("button", "btn small", "Delete");
+    row.append(edit, del);
+    item.appendChild(row);
+    edit.addEventListener("click", async () => {
+      const editing = item.querySelector(".mem-text");
+      if (editing) return memoryAction({ action: "update", id: f.id, text: editing.value });
+      const ta = el("textarea", "mem-text"); ta.value = f.text;
+      item.querySelector(".mem-fact").replaceWith(ta);
+      edit.textContent = "Save";
+      ta.focus();
+    });
+    del.addEventListener("click", () => memoryAction({ action: "delete", id: f.id }));
+    list.appendChild(item);
+  }
+}
+async function memoryAction(body) { await api("/api/memory", body); refreshMemory(); }
 
 // ---------------------------------------------------------------- sending
 function updateSend() {
@@ -590,15 +771,21 @@ async function send(text) {
   updateSend();
   let box = addBot();
   box.innerHTML = '<span class="typing"><i></i><i></i><i></i></span>';
-  let raw = "";
-  let frame = 0;
+  let raw = "", frame = 0, ctx = null, stats = null, suggestion = null, lastBox = null;
   const cards = {};
   const paint = () => { frame = 0; box.innerHTML = md(raw); box.classList.add("cursor"); scrollDown(); };
+  const closeBox = () => {
+    if (!box) return;
+    if (frame) { cancelAnimationFrame(frame); frame = 0; }
+    box.classList.remove("cursor");
+    if (raw.trim()) { box.innerHTML = md(raw); lastBox = box; } else box.closest(".msg").remove();
+    box = null;
+  };
 
   try {
     const res = await api("/api/chat", {
       history: chat.history, message: text,
-      commands: $("cmdToggle").checked, temperature: parseFloat($("temp").value),
+      commands: $("cmdToggle").checked, web: $("webToggle").checked, style: currentStyle(),
     });
     if (!res.ok) {
       let msg = "Something went wrong.";
@@ -622,17 +809,41 @@ async function send(text) {
           if (!box) { box = addBot(); raw = ""; }
           raw += ev.v;
           if (!frame) frame = requestAnimationFrame(paint);
+        } else if (ev.t === "context") {
+          ctx = ev;
+        } else if (ev.t === "search") {
+          closeBox();
+          cards[ev.id] = addSearch(ev.query);
+          scrollDown(true);
+        } else if (ev.t === "search_done") {
+          if (cards[ev.id]) setSearchResult(cards[ev.id], ev.sources, ev.errors);
+          box = addBot(); raw = ""; box.innerHTML = '<span class="typing"><i></i><i></i><i></i></span>';
+          scrollDown();
         } else if (ev.t === "command") {
-          if (box) { if (frame) { cancelAnimationFrame(frame); frame = 0; } box.classList.remove("cursor");
-            if (raw.trim()) box.innerHTML = md(raw); else box.closest(".msg").remove(); }
-          box = null;
-          const card = addCommand(ev.command, ev.dangerous, false);
-          cards[ev.id] = card;
-          askApproval(card, ev.id, ev.dangerous);
+          closeBox();
+          const c = addCommand(ev.command, ev.purpose, ev.dangerous, ev.blocked, false);
+          cards[ev.id] = c;
+          if (!ev.blocked) askApproval(c, ev.id, ev.dangerous);
           scrollDown(true);
         } else if (ev.t === "result") {
-          if (cards[ev.id]) setCommandResult(cards[ev.id], ev.approved, ev.output);
+          if (cards[ev.id]) setCommandResult(cards[ev.id], ev.approved, ev.output, ev.output === "Blocked by Sky AI's safety rules." ? "blocked" : "");
           scrollDown();
+        } else if (ev.t === "memory") {
+          closeBox();
+          cards[ev.id] = addMemoryCard(ev.fact, ev.id);
+          scrollDown(true);
+        } else if (ev.t === "memory_done") {
+          if (cards[ev.id]) status(cards[ev.id], ev.saved ? "✓ Saved to memory: " + ev.saved : "Not saved", ev.saved ? "ok" : "skip");
+          if (ev.saved) refreshMemory();
+        } else if (ev.t === "replace") {
+          if (!box) { box = lastBox || addBot(); }
+          raw = ev.v;
+          closeBox();
+          if (lastBox) lastBox.after(el("div", "fixed-note", "✓ " + ev.note));
+        } else if (ev.t === "suggest_memory") {
+          suggestion = ev.v;
+        } else if (ev.t === "stats") {
+          stats = ev;
         } else if (ev.t === "notice") {
           addNotice(ev.v);
         } else if (ev.t === "error") {
@@ -640,17 +851,9 @@ async function send(text) {
         } else if (ev.t === "done") {
           chat.history = ev.history;
           chat.updated = Date.now();
-          if (box) {
-            if (frame) { cancelAnimationFrame(frame); frame = 0; }
-            box.classList.remove("cursor");
-            if (raw.trim()) {
-              box.innerHTML = md(raw);
-              const meta = document.createElement("div");
-              meta.className = "meta";
-              meta.textContent = `${ev.seconds}s`;
-              box.after(meta);
-            } else box.closest(".msg").remove();
-          }
+          closeBox();
+          if (lastBox) addMeta(lastBox, stats, ctx);
+          if (suggestion) addSuggestion(suggestion);
         }
       }
     }
@@ -668,12 +871,17 @@ async function send(text) {
 }
 
 // ---------------------------------------------------------------- events
+function currentStyle() { const b = document.querySelector("#style button.on"); return b ? b.dataset.style : "balanced"; }
+function setStyle(name) { document.querySelectorAll("#style button").forEach((b) => b.classList.toggle("on", b.dataset.style === name)); }
 $("send").addEventListener("click", () => generating ? api("/api/stop", {}) : send());
 $("input").addEventListener("input", autosize);
 $("input").addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); send(); }
 });
-document.addEventListener("keydown", (e) => { if (e.key === "Escape" && generating) api("/api/stop", {}); });
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && $("memModal").classList.contains("open")) $("memModal").classList.remove("open");
+  else if (e.key === "Escape" && generating) api("/api/stop", {});
+});
 $("newChat").addEventListener("click", () => {
   if (generating) return;
   currentId = null; save(); renderChat();
@@ -684,7 +892,17 @@ document.querySelectorAll(".suggestion").forEach((b) => b.addEventListener("clic
 $("menuBtn").addEventListener("click", () => $("app").classList.toggle("menu-open"));
 $("scrim").addEventListener("click", () => $("app").classList.remove("menu-open"));
 $("cmdToggle").addEventListener("change", saveSettings);
-$("temp").addEventListener("change", saveSettings);
+$("webToggle").addEventListener("change", saveSettings);
+document.querySelectorAll("#style button").forEach((b) => b.addEventListener("click", () => { setStyle(b.dataset.style); saveSettings(); }));
+$("memOpen").addEventListener("click", () => { refreshMemory(); $("memModal").classList.add("open"); });
+$("memClose").addEventListener("click", () => $("memModal").classList.remove("open"));
+$("memModal").addEventListener("click", (e) => { if (e.target.id === "memModal") $("memModal").classList.remove("open"); });
+$("memAdd").addEventListener("click", async () => {
+  const t = $("memNew").value.trim();
+  if (!t) return;
+  $("memNew").value = "";
+  await memoryAction({ action: "add", text: t });
+});
 thread.addEventListener("click", (e) => {
   const btn = e.target.closest(".copy");
   if (!btn) return;
@@ -697,6 +915,7 @@ thread.addEventListener("click", (e) => {
 load();
 renderChat();
 pollStatus();
+refreshMemory();
 setInterval(pollStatus, 4000);
 </script>
 </body>

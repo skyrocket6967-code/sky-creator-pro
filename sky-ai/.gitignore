@@ -1,5 +1,10 @@
 .venv/
 sky-ai-lora/
+sky-ai-lora.training/
+sky-ai-lora-backups/
+memory/
+eval_results/
+benchmarks/
 .app-profile/
 __pycache__/
 *.pyc
