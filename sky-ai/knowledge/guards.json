@@ -1,0 +1,8 @@
+[
+  {
+    "name": "sky-theft-distribution",
+    "about": ["sky theft", "skytheft"],
+    "forbid": ["steam", "epic games store", "epic store", "microsoft store", "itch.io", "gog", "game pass"],
+    "fact": "Sky Theft has never been released on Steam or any other store. It is only available from the official website, skytheft.net."
+  }
+]
