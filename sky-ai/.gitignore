@@ -1,4 +1,5 @@
 .venv/
 sky-ai-lora/
+.app-profile/
 __pycache__/
 *.pyc
