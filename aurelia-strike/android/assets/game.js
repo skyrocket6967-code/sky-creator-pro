@@ -12,7 +12,10 @@
     padSensitivity: 1, padDeadzone: .16, padInvertY: false, rumble: true, hideTouchWithPad: true,
     sound: true, masterVolume: .85, sfxVolume: 1, musicVolume: .4,
     difficulty: 'normal', haptics: true, damageNumbers: true, radar: true, crosshair: 'cross', crosshairColor: 'cyan',
-    best: 0, bestScore: 0, loadout: 0
+    best: 0, bestScore: 0, loadout: 0,
+    // Hidden developer cheats (tap the logo).
+    devUnlocked: false, devGod: false, devWallhack: false, devAmmo: false, devDamage: 'x1', devExplosive: false, devRapid: 1, devNoRecoil: false,
+    devFuel: false, devGrenades: false, devSpeed: 1, devFreeze: false, devSlowmo: false
   };
   const cfg = Object.assign({}, DEFAULTS);
   try {
@@ -20,11 +23,14 @@
     const saved = JSON.parse(localStorage.getItem('strike-v5') || 'null') || old;
     for (const k in cfg) if (k in saved && typeof saved[k] === typeof cfg[k]) cfg[k] = saved[k];
   } catch (e) { /* fresh settings */ }
-  const ENUMS = { quality: ['performance', 'balanced', 'high', 'ultra'], particles: ['low', 'high'], gyro: ['off', 'ads', 'always'], crosshair: ['cross', 'dot', 'circle'], crosshairColor: ['cyan', 'white', 'green', 'yellow', 'red'] };
+  const DEV_DAMAGE = { x1: 1, x2: 2, x5: 5, x10: 10, kill: 1e6 };
+  const ENUMS = { devDamage: Object.keys(DEV_DAMAGE), quality: ['performance', 'balanced', 'high', 'ultra'], particles: ['low', 'high'], gyro: ['off', 'ads', 'always'], crosshair: ['cross', 'dot', 'circle'], crosshairColor: ['cyan', 'white', 'green', 'yellow', 'red'] };
   for (const k in ENUMS) if (!ENUMS[k].includes(cfg[k])) cfg[k] = DEFAULTS[k];
   cfg.sensitivity = clamp(cfg.sensitivity, .3, 3);
   cfg.renderScale = clamp(cfg.renderScale, .45, 1);
   if (![0, 30, 60, 90, 120].includes(cfg.fpsCap)) cfg.fpsCap = 120;
+  if (![1, 1.5, 2, 3].includes(cfg.devSpeed)) cfg.devSpeed = 1;
+  if (![1, 2, 4].includes(cfg.devRapid)) cfg.devRapid = 1;
   const bodyClass = (name, on) => { if (document.body && document.body.classList) document.body.classList.toggle(name, !!on); };
   const persist = () => { try { localStorage.setItem('strike-v5', JSON.stringify(cfg)); } catch (e) { /* storage full */ } };
 
@@ -436,19 +442,20 @@
     if (mode !== 'running' || time < nextFire || reloadEnd) return false;
     if (P.ammo <= 0) { sound('empty', .6); reload(); return false; }
     const g = gunSpec();
-    P.ammo--;
+    if (!cfg.devAmmo) P.ammo--;
     shots++;
     muzzleUntil = time + .05;
-    nextFire = time + g.interval / mods.fireRate;
+    nextFire = time + g.interval / mods.fireRate / cfg.devRapid;
     const origin = [P.x, P.y, P.z];
     let hit = false, headHit = false, killedAny = false;
+    lastImpact = null;
     const mz = muzzlePoint();
     if (gunIndex === 5) {
       const d = direction(P.yaw, P.pitch + recoil);
       projectiles.push({ x: P.x + d[0] * .6, y: P.y - .06, z: P.z + d[2] * .6, vx: d[0] * 32, vy: d[1] * 32, vz: d[2] * 32, fuse: 2.2, rocket: true, hostile: false, damage: g.damage * mods.damage, radius: 5.5 * mods.blast });
       for (let i = 0; i < 6; i++) particle(mz[0], mz[1], mz[2], (Math.random() - .5) * 2, Math.random(), (Math.random() - .5) * 2, 1.2, .35, FX.smoke, .5, 2, false, .8, 1.5, -.2);
     } else for (let pellet = 0; pellet < g.pellets; pellet++) {
-      const spread = g.spread * (ads ? .45 : 1), angle = pellet * 2.39996, radius = g.pellets > 1 ? Math.sqrt(pellet / (g.pellets - 1)) : Math.min(.8, recoil * 9);
+      const spread = g.spread * (ads ? .45 : 1) * (cfg.devNoRecoil ? .25 : 1), angle = pellet * 2.39996, radius = g.pellets > 1 ? Math.sqrt(pellet / (g.pellets - 1)) : Math.min(.8, recoil * 9);
       const dir = aimAssist(direction(P.yaw + Math.cos(angle) * spread * radius, P.pitch + recoil + Math.sin(angle) * spread * radius));
       let d = wallDistance(origin, dir), target = null, head = false;
       for (const e of enemies) {
@@ -459,11 +466,11 @@
       }
       const end = [origin[0] + dir[0] * Math.min(65, d), origin[1] + dir[1] * Math.min(65, d), origin[2] + dir[2] * Math.min(65, d)];
       if (pellet < 3) traces.push({ a: [mz[0], mz[1], mz[2]], b: end, life: .05, enemy: false });
-      if (d < 65 || target) impactFx(end, !!target, target ? (head ? FX.yellow : FX.cyan) : null);
+      if (d < 65 || target) { impactFx(end, !!target, target ? (head ? FX.yellow : FX.cyan) : null); lastImpact = end; }
       if (target) {
         hit = true;
         const falloff = (gunIndex === 2 || gunIndex === 7) ? clamp(1 - d / 38, .22, 1) : gunIndex === 1 ? clamp(1 - d / 80, .55, 1) : 1;
-        const amount = (head ? g.head * mods.headshot : g.damage) * falloff * mods.damage;
+        const amount = (head ? g.head * mods.headshot : g.damage) * falloff * mods.damage * DEV_DAMAGE[cfg.devDamage];
         const alive = target.hp > 0;
         hitEnemy(target, amount, head);
         if (alive && target.hp <= 0) killedAny = true;
@@ -472,6 +479,7 @@
         hitUntil = time + .11;
       }
     }
+    if (cfg.devExplosive && time >= devBlastReady && lastImpact) { devBlastReady = time + .12; explosion(lastImpact, 90 * DEV_DAMAGE[cfg.devDamage], 3.2, false); }
     if (hit) {
       hits++;
       $('hitmarker').className = 'show' + (killedAny ? ' kill' : headHit ? ' head' : '');
@@ -484,9 +492,10 @@
       shells.push({ x: P.x + right[0] * .2, y: P.y - .12, z: P.z + right[2] * .2, vx: right[0] * (1.5 + Math.random()) + P.vx, vy: 1.8 + Math.random(), vz: right[2] * (1.5 + Math.random()) + P.vz, rx: 0, ry: Math.random() * 3, life: 2.2, big: gunIndex === 2 || gunIndex === 7 || gunIndex === 9 });
       if (shells.length > 40) shells.shift();
     }
-    recoil = Math.min(.13, recoil + g.recoil * (ads ? .65 : 1));
-    kick = Math.min(.14, kick + g.recoil * 4);
-    P.yaw += (Math.random() - .5) * g.recoil * .35;
+    const recoilScale = cfg.devNoRecoil ? .08 : 1;
+    recoil = Math.min(.13, recoil + g.recoil * (ads ? .65 : 1) * recoilScale);
+    kick = Math.min(.14, kick + g.recoil * 4 * (cfg.devNoRecoil ? .35 : 1));
+    P.yaw += (Math.random() - .5) * g.recoil * .35 * recoilScale;
     if (gunIndex === 2) pumpAnim = 1;
     if (gunIndex === 6) slideAnim = 1;
     if (gunIndex === 9) spinSpeed = 40;
@@ -498,7 +507,7 @@
     updateHUD();
     return true;
   }
-  let reloadSounds = 0;
+  let reloadSounds = 0, lastImpact = null, devBlastReady = 0;
   function reload() {
     if (mode !== 'running' || reloadEnd || P.ammo === gunSpec().mag || P.reserve <= 0) return false;
     reloadStart = time;
@@ -563,6 +572,7 @@
   function hurt(amount, fromX, fromZ) {
     if (mode !== 'running') return;
     if (!Number.isFinite(amount) || amount <= 0) return;
+    if (cfg.devGod) { if (Number.isFinite(fromX)) damageIndicator(fromX, fromZ); sound('shieldHit', .3); return; }
     amount *= rules().damage;
     lastDamage = time;
     nextHealth = time + mods.regenInterval;
@@ -596,7 +606,7 @@
     let magnitude = Math.hypot(mx, my);
     if (magnitude > 1) { mx /= magnitude; my /= magnitude; }
     const sprint = (magnitude > .92 || input.keys.has('ShiftLeft')) && !ads && !fireHeld && P.fuel > 1 && !reloadEnd;
-    const speed = (time < dashEnd ? 14 : ads ? 3.3 : sprint ? 6.5 : 4.8) * mods.speed * (P.grounded ? 1 : .85);
+    const speed = (time < dashEnd ? 14 : ads ? 3.3 : sprint ? 6.5 : 4.8) * mods.speed * cfg.devSpeed * (P.grounded ? 1 : .85);
     const vx = (Math.cos(P.yaw) * mx - Math.sin(P.yaw) * my) * speed, vz = (Math.sin(P.yaw) * mx + Math.cos(P.yaw) * my) * speed;
     const rate = (magnitude > .01 ? 25 : 35) * (P.grounded ? 1 : .35);
     P.vx += (vx - P.vx) * (1 - Math.exp(-dt * rate));
@@ -656,9 +666,12 @@
       if (P.ammo > 0 && (input.fireId !== null || input.fire2Id !== null)) fireHeld = true;
     }
     // Health rule: +5 every interval without damage, capped.
+    if (cfg.devFuel) P.fuel = 100;
+    if (cfg.devGrenades) { P.grenades = Math.max(P.grenades, 9); grenadeReady = Math.min(grenadeReady, time + .2); }
+    if (cfg.devGod) { P.hp = mods.maxHp; P.shield = mods.maxShield; }
     if (time + 1e-7 >= nextHealth) { P.hp = Math.min(mods.maxHp, P.hp + 5); nextHealth += mods.regenInterval; }
     if (time - lastDamage > 4.5) P.shield = Math.min(mods.maxShield, P.shield + dt * 18 * mods.shieldRegen);
-    updateEnemies(dt);
+    if (!cfg.devFreeze) updateEnemies(dt);
     if (mode !== 'running') return;
     for (const p of parts) {
       p.life -= dt;
@@ -880,6 +893,7 @@
     for (const p of projectiles) MDL.grenade(actors, p, time);
     for (const s of shells) MDL.shell(actors, s);
     R.draw(actors);
+    if (cfg.devWallhack) R.drawXray(actors, [1, .25, .12]);
     R.drawSky();
     pushParticles();
     R.drawParticles(alphaList, false);
@@ -1250,7 +1264,10 @@
   }
 
   // ------------------------------------------------------------------ settings
-  const TABS = ['graphics', 'controls', 'controller', 'audio', 'gameplay'];
+  const BASE_TABS = ['graphics', 'controls', 'controller', 'audio', 'gameplay'];
+  let TABS = BASE_TABS.slice();
+  const refreshTabs = () => { TABS = cfg.devUnlocked ? BASE_TABS.concat('dev') : BASE_TABS.slice(); };
+  refreshTabs();
   let settingsTab = 0;
   const SETTINGS = [
     { tab: 'graphics', key: 'quality', label: 'Quality preset', type: 'choice', options: [['performance', 'Performance'], ['balanced', 'Balanced'], ['high', 'High'], ['ultra', 'Ultra']] },
@@ -1287,8 +1304,62 @@
     { tab: 'gameplay', key: 'damageNumbers', label: 'Damage numbers', type: 'toggle' },
     { tab: 'gameplay', key: 'radar', label: 'Radar', type: 'toggle' },
     { tab: 'gameplay', key: 'crosshair', label: 'Crosshair', type: 'choice', options: [['cross', 'Cross'], ['dot', 'Dot'], ['circle', 'Circle']] },
-    { tab: 'gameplay', key: 'crosshairColor', label: 'Crosshair color', type: 'choice', options: [['cyan', 'Cyan'], ['white', 'White'], ['green', 'Green'], ['yellow', 'Yellow'], ['red', 'Red']] }
+    { tab: 'gameplay', key: 'crosshairColor', label: 'Crosshair color', type: 'choice', options: [['cyan', 'Cyan'], ['white', 'White'], ['green', 'Green'], ['yellow', 'Yellow'], ['red', 'Red']] },
+    { tab: 'dev', key: 'devGod', label: 'God mode', type: 'toggle', note: 'Unlimited health and shield. Nothing can hurt you.' },
+    { tab: 'dev', key: 'devWallhack', label: 'Wall hacks', type: 'toggle', note: 'Enemies, pickups and grenades glow through walls.' },
+    { tab: 'dev', key: 'devAmmo', label: 'Unlimited ammo', type: 'toggle', note: 'Never reload again.' },
+    { tab: 'dev', key: 'devDamage', label: 'Damage', type: 'choice', options: [['x1', '×1'], ['x2', '×2'], ['x5', '×5'], ['x10', '×10'], ['kill', 'ONE HIT']] },
+    { tab: 'dev', key: 'devExplosive', label: 'Explosive bullets', type: 'toggle', note: 'Every shot that lands blows up.' },
+    { tab: 'dev', key: 'devRapid', label: 'Fire rate', type: 'choice', options: [[1, '×1'], [2, '×2'], [4, '×4']] },
+    { tab: 'dev', key: 'devNoRecoil', label: 'No recoil or spread', type: 'toggle' },
+    { tab: 'dev', key: 'devSpeed', label: 'Move speed', type: 'choice', options: [[1, '×1'], [1.5, '×1.5'], [2, '×2'], [3, '×3']] },
+    { tab: 'dev', key: 'devFuel', label: 'Unlimited jetpack fuel', type: 'toggle', note: 'Hold JUMP to fly anywhere.' },
+    { tab: 'dev', key: 'devGrenades', label: 'Unlimited grenades', type: 'toggle' },
+    { tab: 'dev', key: 'devFreeze', label: 'Freeze enemies', type: 'toggle', note: 'Enemies stop moving and shooting.' },
+    { tab: 'dev', key: 'devSlowmo', label: 'Slow motion', type: 'toggle' },
+    { tab: 'dev', key: 'devKillAll', label: 'Eliminate every enemy', type: 'action', button: 'KILL ALL', run: () => devKillAll(0) },
+    { tab: 'dev', key: 'devSkip', label: 'Skip ahead 5 waves', type: 'action', button: 'SKIP', run: () => devKillAll(4) },
+    { tab: 'dev', key: 'devHeal', label: 'Full health, shield, ammo and fuel', type: 'action', button: 'REFILL', run: devRefill },
+    { tab: 'dev', key: 'devPerks', label: 'Unlock every perk', type: 'action', button: 'GIVE ALL', run: devAllPerks },
+    { tab: 'dev', key: 'devScore', label: 'Add 10,000 score', type: 'action', button: '+10K', run: () => { if (mode !== 'menu') { score += 10000; lastHud = -99; devToast('+10,000 SCORE'); } } },
+    { tab: 'dev', key: 'devReset', label: 'Turn every cheat off', type: 'action', button: 'RESET', run: devReset }
   ];
+  function devToast(text) { if (mode !== 'menu') feedPush('⚡ ' + text, 'perk'); sound('pickup', .7, 1.2); }
+  function devKillAll(extraWaves) {
+    if (mode !== 'running' && mode !== 'paused') return;
+    wave += extraWaves;
+    for (const e of enemies) if (e.hp > 0) { e.hp = 0; killEnemy(e, false, 'dev'); }
+    devToast(extraWaves ? 'SKIPPED TO WAVE ' + (wave + 1) : 'ALL ENEMIES ELIMINATED');
+  }
+  function devRefill() {
+    if (mode === 'menu') return;
+    P.hp = mods.maxHp; P.shield = mods.maxShield; P.fuel = 100; P.grenades = Math.max(P.grenades, 9);
+    P.ammo = gunSpec().mag; P.reserve = Math.max(P.reserve, gunSpec().reserve); reloadEnd = 0;
+    lastHud = -99;
+    devToast('FULLY RESUPPLIED');
+  }
+  function devAllPerks() {
+    if (mode === 'menu') return;
+    for (const p of PERKS) { p.apply(); ownedPerks.push(p); }
+    lastHud = -99;
+    devToast('ALL PERKS UNLOCKED');
+  }
+  function devReset() {
+    for (const k of Object.keys(DEFAULTS)) if (k.indexOf('dev') === 0 && k !== 'devUnlocked') cfg[k] = DEFAULTS[k];
+    applySettings();
+    persist();
+    renderSettings();
+    devToast('CHEATS OFF');
+  }
+  /** Tapping the logo (or the pause title) opens the hidden DEV tab. */
+  function openDev() {
+    cfg.devUnlocked = true;
+    refreshTabs();
+    settingsTab = TABS.indexOf('dev');
+    persist();
+    openSettings();
+    sound('medal', .7);
+  }
   const settingByKey = {};
   for (const s of SETTINGS) settingByKey[s.key] = s;
   function settingsNavIds() {
@@ -1299,13 +1370,14 @@
   }
   function controlHtml(s) {
     const v = cfg[s.key];
+    if (s.type === 'action') return '<button class="act">' + s.button + '</button>';
     if (s.type === 'toggle') return '<span class="toggle ' + (v ? 'on' : '') + '"><i></i></span>';
     if (s.type === 'choice') return '<span class="seg">' + s.options.map(([val, label]) => '<b class="' + (val === v ? 'on' : '') + '" data-v="' + val + '">' + label + '</b>').join('') + '</span>';
     const t = (v - s.min) / (s.max - s.min);
     return '<span class="slider"><span class="track"><i style="width:' + (t * 100).toFixed(1) + '%"></i><em style="left:' + (t * 100).toFixed(1) + '%"></em></span><output>' + s.fmt(v) + '</output></span>';
   }
   function renderSettings() {
-    $('settings-tabs').innerHTML = TABS.map((t, i) => '<button id="tab-' + t + '" class="tab ' + (i === settingsTab ? 'on' : '') + '" data-tab="' + i + '">' + t.toUpperCase() + '</button>').join('');
+    $('settings-tabs').innerHTML = TABS.map((t, i) => '<button id="tab-' + t + '" class="tab ' + (t === 'dev' ? 'dev ' : '') + (i === settingsTab ? 'on' : '') + '" data-tab="' + i + '">' + (t === 'dev' ? '⚡ DEV' : t.toUpperCase()) + '</button>').join('');
     let html = '';
     for (const s of SETTINGS) {
       if (s.tab !== TABS[settingsTab]) continue;
@@ -1337,7 +1409,8 @@
   function adjustSetting(key, step, activate) {
     const s = settingByKey[key];
     if (!s) return;
-    if (s.type === 'toggle') setSetting(key, !cfg[key]);
+    if (s.type === 'action') { if (activate || step > 0) s.run(); }
+    else if (s.type === 'toggle') setSetting(key, !cfg[key]);
     else if (s.type === 'choice') {
       const vals = s.options.map(o => o[0]);
       const i = vals.indexOf(cfg[key]);
@@ -1366,6 +1439,11 @@
       if (!cfg.hideTouchWithPad) body.classList.remove('pad'); else if (padConnected) body.classList.add('pad');
     }
     setText('quality-info', cfg.quality.toUpperCase());
+    const cheats = [cfg.devGod && 'GOD', cfg.devWallhack && 'WALLHACK', cfg.devAmmo && '∞ AMMO', cfg.devDamage !== 'x1' && (cfg.devDamage === 'kill' ? 'ONE HIT' : 'DMG ' + cfg.devDamage.replace('x', '×')),
+      cfg.devExplosive && 'BOOM', cfg.devRapid > 1 && 'RAPID ×' + cfg.devRapid, cfg.devNoRecoil && 'NO RECOIL', cfg.devSpeed > 1 && 'SPEED ×' + cfg.devSpeed,
+      cfg.devFuel && '∞ FUEL', cfg.devGrenades && '∞ GRENADES', cfg.devFreeze && 'FROZEN', cfg.devSlowmo && 'SLOW-MO'].filter(Boolean);
+    setText('dev-badge', '⚡ DEV · ' + cheats.join(' · '));
+    bodyClass('dev-on', cheats.length > 0);
   }
   let settingsFrom = 'menu';
   function openSettings() {
@@ -1393,7 +1471,8 @@
     if (!row) return;
     const key = row.dataset.key, s = settingByKey[key];
     if (!s) return;
-    if (s.type === 'toggle') { setSetting(key, !cfg[key]); sound('ui', .5); }
+    if (s.type === 'action') { s.run(); sound('ui', .5); }
+    else if (s.type === 'toggle') { setSetting(key, !cfg[key]); sound('ui', .5); }
     else if (s.type === 'choice') {
       const b = e.target.closest('b[data-v]');
       if (b) { const raw = b.dataset.v; const val = typeof s.options[0][0] === 'number' ? Number(raw) : raw; setSetting(key, val); sound('ui', .5); }
@@ -1435,7 +1514,7 @@
     R.adapt(measuredDt);
     pollController(Math.min(realDt, .05));
     if (mode === 'running') {
-      accumulator += Math.min(realDt, .05);
+      accumulator += Math.min(realDt, .05) * (cfg.devSlowmo ? .4 : 1);
       let steps = 0;
       while (accumulator >= 1 / 120 && steps++ < 7) { update(1 / 120); accumulator -= 1 / 120; }
       updateHUD();
@@ -1589,6 +1668,8 @@
   $('pause-settings').onclick = openSettings;
   $('settings-close').onclick = closeSettings;
   $('help-open').onclick = openHelp;
+  $('logo').onclick = openDev;
+  $('pause-title').onclick = openDev;
   $('help-close').onclick = closeHelp;
   for (let i = 0; i < 3; i++) $('perk' + i).onclick = () => choosePerk(i);
 
@@ -1621,7 +1702,7 @@
 
   window.strikeTest = {
     nextHealthAt: () => nextHealth, mapBounds: W.bounds, pollController, releasePad, stickPair, GUNS, MODES, PERKS, spawnWave, switchGun, throwGrenade, explosion, updateProjectiles,
-    start, pause, resume, shoot, reload, dash, jump, update, draw, toMenu, freeAt, rayBox, wallDistance, sphereHit, player: P, input, config: cfg, choosePerk, openSettings, closeSettings, adjustSetting,
+    start, pause, resume, shoot, reload, dash, jump, update, draw, toMenu, freeAt, rayBox, wallDistance, sphereHit, player: P, input, config: cfg, choosePerk, openSettings, closeSettings, adjustSetting, openDev,
     state: () => ({ mode, time, wave, kills, shots, hits, headshots, reloadEnd, nextFire, dashReady, enemies, transition, ads, gunIndex, projectiles, pickups, score, perkOffer, ownedPerks, mods, navScreen }),
     setEnemies: v => { enemies = v; }, setTime: v => { time = v; }, setWave: v => { wave = v; }, setAim: (yaw, pitch) => { P.yaw = yaw; P.pitch = pitch; }, setAds: v => { ads = v; },
     hurt, stop: () => cancelAnimationFrame(raf), step: n => { for (let i = 0; i < n; i++) update(1 / 120); lastHud = -99; updateHUD(); }, frame

@@ -65,4 +65,15 @@ test('settings change live, persist and quality presets set their options',()=>{
 test('controller navigates the menu: D-pad moves focus, A selects a mode, B leaves settings',()=>{g.releasePad();g.toMenu();assert.equal(g.state().navScreen,'menu');poll(pad());poll(pad({13:true}));poll(pad());poll(pad({15:true}));poll(pad());poll(pad({0:true}));assert.notEqual(g.state().mode,'running');poll(pad());poll(pad({2:true}));assert.equal(g.state().navScreen,'settings');poll(pad());poll(pad({1:true}));assert.equal(g.state().navScreen,'menu');poll(pad());g.config.difficulty='normal';poll(null)});
 test('Android back button pauses, resumes and leaves results',()=>{assert.equal(context.onAndroidBack(),true);assert.equal(g.state().mode,'paused');assert.equal(context.onAndroidBack(),true);assert.equal(g.state().mode,'running');g.hurt(500);assert.equal(g.state().mode,'lost');assert.equal(context.onAndroidBack(),true);assert.equal(g.state().mode,'menu');assert.equal(context.onAndroidBack(),false)});
 test('auto-fire shoots only when the crosshair is on a visible enemy',()=>{g.config.autoFire=true;g.setEnemies([bot(0,4)]);g.setAim(0,Math.atan2(-.4,8));g.step(1);assert.equal(g.player.ammo,29);assert.equal(g.state().enemies[0].hp,66);g.setAim(Math.PI/2,0);let a=g.player.ammo;g.step(30);assert.equal(g.player.ammo,a);g.config.autoFire=false});
+
+test('dev mode: logo opens the DEV tab, cheats work and reset turns them off',()=>{g.toMenu();g.openDev();assert.equal(g.config.devUnlocked,true);assert.equal(g.state().navScreen,'settings');g.closeSettings();g.start();g.config.assist=false;
+  g.config.devGod=true;g.hurt(500);assert.equal(g.state().mode,'running');assert.equal(g.player.hp,100);
+  g.config.devAmmo=true;g.setEnemies([bot(0,4,1000)]);g.setAim(0,Math.atan2(-.4,8));g.shoot();assert.equal(g.player.ammo,30);
+  g.config.devDamage='kill';g.step(20);g.shoot();assert.equal(g.state().kills,1);
+  g.config.devFreeze=true;let e={...bot(10,-10,100),shot:0};g.setEnemies([e]);g.step(240);assert.equal(e.x,10);assert.equal(e.z,-10);
+  g.config.devFuel=true;g.player.fuel=0;g.step(1);assert.equal(g.player.fuel,100);
+  g.config.devWallhack=true;g.draw(.016);
+  g.adjustSetting('devReset',1,true);for(const k of ['devGod','devAmmo','devFreeze','devFuel','devWallhack'])assert.equal(g.config[k],false);assert.equal(g.config.devDamage,'x1');assert.equal(g.config.devUnlocked,true)});
+test('dev actions: kill all clears the wave, skip jumps ahead 5 waves',()=>{g.setEnemies([bot(0,4),bot(5,-6)]);g.adjustSetting('devKillAll',1,true);assert.equal(g.state().enemies.every(e=>e.hp<=0),true);g.step(2);assert(g.state().perkOffer);g.choosePerk(0);g.step(400);assert.equal(g.state().wave,2);
+  g.adjustSetting('devSkip',1,true);g.step(2);g.choosePerk(0);g.step(400);assert.equal(g.state().wave,7)});
 console.log(`${passed} FPS behavior tests passed. Rendering uses a stub; these checks do not measure real GPU performance.`);

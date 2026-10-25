@@ -154,7 +154,7 @@ void main(){
 uniform vec3 eye; uniform vec3 sunDir; uniform vec3 sunCol; uniform vec3 skyCol; uniform vec3 groundCol; uniform vec3 upDir;
 uniform vec3 fogCol; uniform float fogDensity; uniform float exposure; uniform float time; uniform float shadowOn;
 uniform sampler2D noiseTex; uniform sampler2D aoTex; uniform sampler2D shadowTex; uniform vec4 aoRect; uniform float shadowTexel;
-uniform vec4 lightPos[LIGHTS]; uniform vec4 lightCol[LIGHTS]; uniform vec3 flashCol;
+uniform vec4 lightPos[LIGHTS]; uniform vec4 lightCol[LIGHTS]; uniform vec3 flashCol; uniform float xray; uniform vec3 xrayCol;
 varying vec3 vWorld; varying vec3 vNormal; varying vec3 vLocal; varying vec3 vLN; varying vec3 vScale;
 varying vec4 vCol; varying vec4 vMat; varying vec3 vShadow;
 
@@ -190,6 +190,12 @@ void main(){
   float dist = length(eye - vWorld);
   vec3 wsz = vLocal * vScale;            // local position in meters
   vec2 uvTri = abs(N.y) > 0.6 ? vWorld.xz : vec2(vWorld.x + vWorld.z, vWorld.y);
+  // X-ray silhouette (only drawn where the object is hidden behind something).
+  if (xray > 0.5) {
+    float rim = pow(1.0 - abs(dot(N, V)), 2.0);
+    gl_FragColor = vec4(xrayCol * (0.45 + rim * 1.3), 0.62);
+    return;
+  }
 
   // Emissive and unlit surfaces.
   if (mode > 2.5 && mode < 3.5) {
@@ -596,7 +602,7 @@ void main(){
   const opts = Object.assign({ preset: 'balanced', dynamicRes: true, fpsCap: 120, maxScale: 1 }, PRESETS.balanced);
   let scene = null, depthProg = null, skyProg = null, partProg = null, brightProg = null, blurProg = null, compProg = null;
   const sceneUniforms = ['vp', 'shadowVP', 'eye', 'sunDir', 'sunCol', 'skyCol', 'groundCol', 'upDir', 'fogCol', 'fogDensity', 'exposure', 'time', 'shadowOn',
-    'noiseTex', 'aoTex', 'shadowTex', 'aoRect', 'shadowTexel', 'lightPos', 'lightCol', 'flashCol'];
+    'noiseTex', 'aoTex', 'shadowTex', 'aoRect', 'shadowTexel', 'lightPos', 'lightCol', 'flashCol', 'xray', 'xrayCol'];
   function buildPrograms() {
     const lights = Math.max(1, opts.lights | 0);
     let defs = '#define LIGHTS ' + lights + '\n';
@@ -842,6 +848,7 @@ void main(){
     gl.uniform1f(L.time, frameTime);
     gl.uniform4fv(L.aoRect, aoRect);
     gl.uniform3fv(L.flashCol, isWeapon ? weaponFlash : [0, 0, 0]);
+    gl.uniform1f(L.xray, 0);
     gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, noiseTex); gl.uniform1i(L.noiseTex, 0);
     gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, aoTex); gl.uniform1i(L.aoTex, 1);
     gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, shadowReady ? shadowTex : noiseTex); gl.uniform1i(L.shadowTex, 2);
@@ -891,6 +898,22 @@ void main(){
   function draw(batch) {
     gl.disable(gl.CULL_FACE);
     drawBatchWith(scene, batch, false);
+  }
+  /** Draws a batch only where it is behind other geometry, as a glowing see-through silhouette. */
+  function drawXray(batch, color) {
+    gl.useProgram(scene.program);
+    gl.uniform1f(scene.xray, 1);
+    gl.uniform3fv(scene.xrayCol, color);
+    gl.disable(gl.CULL_FACE);
+    gl.depthFunc(gl.GREATER);
+    gl.depthMask(false);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    drawBatchWith(scene, batch, false);
+    gl.disable(gl.BLEND);
+    gl.depthMask(true);
+    gl.depthFunc(gl.LEQUAL);
+    gl.uniform1f(scene.xray, 0);
   }
   function drawSky() {
     gl.disable(gl.CULL_FACE);
@@ -1052,7 +1075,7 @@ void main(){
 
   return {
     gl, canvas, gl2, instancing, MESH, Batch, Particles, Stack, rgb, mix: mixc, env, PRESETS,
-    begin, draw, drawSky, drawParticles, weaponView, end, setLights, setWeaponFlash, setStatic, renderShadowMap,
+    begin, draw, drawXray, drawSky, drawParticles, weaponView, end, setLights, setWeaponFlash, setStatic, renderShadowMap,
     quality, configure, adapt, project, camera: cam,
     options: () => Object.assign({}, opts),
     stats: () => ({ fps: fpsSmooth, resolution: scale, instanced: instancing, width, height, gl2, shadows: shadowReady, post: postReady }),

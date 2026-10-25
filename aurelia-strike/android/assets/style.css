@@ -100,6 +100,12 @@ body.xc-white { --xh: #ffffff; } body.xc-green { --xh: #7dff8a; } body.xc-yellow
 #medal span { font-size: 13px; letter-spacing: .2em; color: #fff; }
 #medal.pop { animation: medal 1.6s ease-out forwards; }
 @keyframes medal { 0% { opacity: 0; transform: translate(-50%, 0) scale(1.6); } 12% { opacity: 1; transform: translate(-50%, 0) scale(1); } 80% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -14px); } }
+#dev-badge { position: absolute; left: 50%; top: calc(8px + var(--st)); transform: translateX(-50%); display: none; padding: 3px 10px; font-size: 10px; letter-spacing: .2em;
+  color: #2a0b05; background: linear-gradient(90deg, #ffb54f, #ff6a3a); clip-path: var(--cut); white-space: nowrap; }
+body.dev-on #dev-badge { display: block; }
+#logo, #pause-title { cursor: pointer; pointer-events: auto; }
+.act { flex: none; padding: 8px 16px; font-size: 12px; font-weight: 700; letter-spacing: .16em; color: #2a0b05; background: linear-gradient(90deg, #ffb54f, #ff7a3a); clip-path: var(--cut); }
+.tab.dev { color: var(--amber); } .tab.dev.on { border-bottom-color: var(--amber); }
 #controller-status { position: absolute; left: calc(14px + var(--sl)); bottom: calc(8px + var(--sb)); font-size: 10px; letter-spacing: .16em; color: var(--muted); }
 .pad-hints { display: none; position: absolute; right: calc(16px + var(--sr)); bottom: calc(10px + var(--sb)); gap: 12px; font-size: 10.5px; letter-spacing: .12em; color: #cfe0e0; }
 body.pad .pad-hints { display: flex; }

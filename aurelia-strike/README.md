@@ -47,11 +47,20 @@ X reload, Y/RB swap, LB grenade, R3 toggle aim, Start pause. Menus and settings 
 **Android shell.** Immersive full screen, requests the display's highest refresh rate (120 Hz where available),
 system font scaling locked so the HUD can't break, phone haptics with amplitude, controller rumble, back button, renderer-crash recovery.
 
+## Dev mode
+
+Tap the **AURELIA STRIKE** logo on the main menu (or the **PAUSED** title during a match) to open the hidden ⚡ DEV tab in Settings:
+god mode, wall hacks (enemies glow through walls), unlimited ammo, damage up to one-hit kills, explosive bullets, rapid fire,
+no recoil, super speed, unlimited jetpack fuel and grenades, freeze enemies, slow motion, plus kill all, skip 5 waves,
+refill, unlock every perk, +10,000 score and a reset button. A badge at the top of the HUD lists the cheats that are on.
+
+![Wall hacks](screenshots/wallhack.jpg)
+
 ## Build and test
 
 ```
 tools/build-apk.sh                 # aapt, javac, dx, zipalign, apksigner -> release/Aurelia-Strike.apk
-node tests/fps.test.cjs            # 45 behaviour tests (36 from 4.0, 4 adjusted for new controls/perks, 9 new)
+node tests/fps.test.cjs            # 47 behaviour tests (36 from 4.0, 4 adjusted for new controls/perks, 11 new)
 node tests/browser.cjs [outDir]    # runs the real game with WebGL in headless Chromium; fails on any error; saves screenshots
 java tools/IconGen.java android/res release/icon-512.png
 ```

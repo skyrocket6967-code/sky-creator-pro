@@ -75,6 +75,21 @@ const url = 'file://' + path.join(__dirname, '../android/assets/index.html');
   await frames(5);
   await shot('11-help');
   await page.evaluate(() => { document.getElementById('help').classList.add('hidden'); window.strikeTest.resume(); });
+  // Dev mode: open from the logo, then wall hacks through cover.
+  await page.evaluate(() => { const g = window.strikeTest; g.toMenu(); g.openDev(); });
+  await frames(6);
+  await shot('12-dev-tab');
+  await page.evaluate(() => {
+    const g = window.strikeTest; g.closeSettings(); g.start();
+    Object.assign(g.config, { devWallhack: true, devGod: true, devAmmo: true, devDamage: 'kill' });
+    g.adjustSetting('devGod', 1); g.adjustSetting('devGod', 1);
+    g.player.x = 0; g.player.z = 14; g.setAim(0, -.04);
+    const mk = (id, x, z, type) => ({ id, x, z, hp: 200, maxHP: 200, type, boss: false, size: 1, dead: 0, phase: id, shot: 1e9, heal: 1e9, grenade: 1e9, flash: 0, strafe: 1, hit: 0, angle: 0 });
+    g.setEnemies([mk(1, 0, 15.6 - 18, 'grunt'), mk(2, -7, 3.2, 'heavy'), mk(3, 7, 3.4, 'sniper'), mk(4, 0, -13.5, 'bomber'), mk(5, -11, -15.5, 'medic')]);
+  });
+  await frames(20);
+  await shot('13-wallhack');
+  await page.evaluate(() => { const g = window.strikeTest; g.adjustSetting('devReset', 1, true); });
   // Every quality preset must compile and render.
   for (const q of ['performance', 'balanced', 'high', 'ultra']) {
     await page.evaluate(q => { window.strikeTest.adjustSetting('quality', 0); window.strikeTest.config.quality = q; }, q);
