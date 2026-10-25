@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#05090c">
+<title>Aurelia Strike</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="world" aria-label="3D combat arena"></canvas>
+<div id="scope"><div class="scope-ring"></div><i></i><i></i><b></b></div>
+
+<div id="hud" class="hidden">
+  <div class="tl">
+    <canvas id="radar" width="116" height="116"></canvas>
+    <div class="mission">
+      <b id="wave">WAVE 01</b>
+      <span id="remaining">0 HOSTILES</span>
+      <span class="score-line">SCORE <em id="score">0</em></span>
+      <span id="streak"></span>
+    </div>
+  </div>
+  <div id="killfeed"></div>
+  <div class="tr">
+    <div id="performance"><strong id="fps">— FPS</strong><span id="frame-time">— ms</span><span id="quality-info">BALANCED</span></div>
+    <button class="icon-btn" id="pause" aria-label="Pause"><i></i><i></i></button>
+  </div>
+  <div id="weapon-info">
+    <div class="gun-line"><span id="gun-name">VXR-7</span><small id="gun-kind">1 / 10</small></div>
+    <div class="ammo-line"><div id="reload-ring"></div><strong id="ammo">30</strong><span>/ <em id="reserve">240</em></span></div>
+    <label id="reload-label">ASSAULT RIFLE</label>
+    <div class="fuel"><span>JET</span><div class="fuel-track"><i id="fuel-bar"></i></div><span class="gren">◉ <b id="grenade-count">5</b></span></div>
+  </div>
+  <div class="vitals">
+    <div class="bar-row shield-row"><span>SHIELD</span><div class="track"><i id="shield"></i></div><b id="sp">50</b></div>
+    <div class="bar-row health-row"><span>HEALTH</span><div class="track"><i id="health"></i></div><b id="hp">100</b></div>
+    <small id="regen">HEALTH FULL</small>
+  </div>
+  <div id="crosshair"><i></i><i></i><i></i><i></i><b></b><s></s></div>
+  <div id="hitmarker"><i></i><i></i><i></i><i></i></div>
+  <div id="indicators"><div id="di0" class="dmg-ind"></div><div id="di1" class="dmg-ind"></div><div id="di2" class="dmg-ind"></div><div id="di3" class="dmg-ind"></div><div id="di4" class="dmg-ind"></div><div id="di5" class="dmg-ind"></div></div>
+  <div id="numbers"><span id="dn0" class="dmg-num"></span><span id="dn1" class="dmg-num"></span><span id="dn2" class="dmg-num"></span><span id="dn3" class="dmg-num"></span><span id="dn4" class="dmg-num"></span><span id="dn5" class="dmg-num"></span><span id="dn6" class="dmg-num"></span><span id="dn7" class="dmg-num"></span><span id="dn8" class="dmg-num"></span><span id="dn9" class="dmg-num"></span><span id="dn10" class="dmg-num"></span><span id="dn11" class="dmg-num"></span></div>
+  <div id="announcement"></div>
+  <div id="medal"></div>
+  <span id="controller-status"></span>
+  <div class="pad-hints"><span><kbd class="rt">RT</kbd>FIRE</span><span><kbd class="lt">LT</kbd>AIM</span><span><kbd class="a">A</kbd>JUMP</span><span><kbd class="b">B</kbd>DASH</span><span><kbd class="x">X</kbd>RELOAD</span><span><kbd class="y">Y</kbd>SWAP</span><span><kbd class="lb">LB</kbd>GRENADE</span></div>
+</div>
+
+<div id="controls" class="hidden">
+  <div id="look" aria-label="Drag to aim"></div>
+  <div id="move" aria-label="Movement joystick"></div>
+  <div id="joystick"><i id="stick"></i></div>
+  <button id="fire" class="btn big" aria-label="Fire"><span class="glyph fire-glyph"></span><small>FIRE</small></button>
+  <button id="fire2" class="btn mid" aria-label="Fire"><span class="glyph fire-glyph"></span></button>
+  <button id="ads" class="btn" aria-label="Aim down sights"><span class="glyph ads-glyph"></span><small>AIM</small></button>
+  <button id="jump" class="btn" aria-label="Jump, hold for jetpack"><span class="glyph jump-glyph"></span><small>JUMP</small></button>
+  <button id="reload" class="btn small" aria-label="Reload"><span class="glyph reload-glyph"></span><small>RELOAD</small></button>
+  <button id="dash" class="btn small" aria-label="Dash"><span class="glyph dash-glyph"></span><small>DASH</small></button>
+  <button id="grenade" class="btn small" aria-label="Throw grenade"><span class="glyph gren-glyph"></span><small>GREN</small></button>
+  <button id="swap" class="btn pill" aria-label="Switch weapon"><small>SWAP ▸</small><b id="next-gun">WASP-9</b></button>
+  <div id="tutorial">LEFT THUMB · MOVE &nbsp;|&nbsp; RIGHT THUMB · AIM &nbsp;|&nbsp; HOLD JUMP FOR JETPACK</div>
+</div>
+
+<div id="menu">
+  <div class="menu-shade"></div>
+  <div class="menu-left">
+    <div class="logo-tag">VERSION 5.0 · OVERDRIVE UPDATE</div>
+    <h1>AURELIA<span>STRIKE</span></h1>
+    <div class="modes">
+      <button id="mode-normal" class="mode-card"><b>ASSAULT</b><small>10 WAVES</small></button>
+      <button id="mode-hard" class="mode-card"><b>NIGHTMARE</b><small>15 WAVES</small></button>
+      <button id="mode-insane" class="mode-card"><b>INSANE</b><small>20 WAVES</small></button>
+      <button id="mode-endless" class="mode-card"><b>ENDLESS</b><small>SURVIVAL</small></button>
+    </div>
+    <p id="mode-blurb"></p>
+    <button id="play" class="primary">DEPLOY <span>▶</span></button>
+  </div>
+  <div class="menu-right">
+    <div id="menu-gun" class="gun-card">
+      <div class="card-tag">LOADOUT</div>
+      <div class="gun-select">
+        <button id="gun-prev" class="arrow" aria-label="Previous weapon">‹</button>
+        <div><b id="menu-gun-name">VXR-7</b><small id="menu-gun-kind">ASSAULT RIFLE</small></div>
+        <button id="gun-next" class="arrow" aria-label="Next weapon">›</button>
+      </div>
+      <div class="stat-bars">
+        <label>DAMAGE<i><em id="bar-dmg"></em></i></label>
+        <label>FIRE RATE<i><em id="bar-rate"></em></i></label>
+        <label>RANGE<i><em id="bar-range"></em></i></label>
+        <label>CAPACITY<i><em id="bar-mag"></em></i></label>
+      </div>
+    </div>
+    <div class="menu-row">
+      <button id="settings-open" class="text-button">⚙ SETTINGS</button>
+      <button id="help-open" class="text-button">✚ CONTROLS</button>
+    </div>
+    <span id="best">BEST WAVE 0</span>
+  </div>
+  <div class="sector-label">SECTOR <b>05</b><span>EXPANSE · INDUSTRIAL DISTRICT · DUSK</span></div>
+</div>
+
+<div id="perks" class="modal hidden">
+  <div class="perk-wrap">
+    <div class="logo-tag">WAVE CLEARED · FIELD UPGRADE</div>
+    <h2>CHOOSE AN UPGRADE</h2>
+    <div class="perk-cards"><button id="perk0" class="perk-card"></button><button id="perk1" class="perk-card"></button><button id="perk2" class="perk-card"></button></div>
+    <small id="perk-timer"></small>
+  </div>
+</div>
+
+<div id="pause-panel" class="modal hidden">
+  <div class="modal-card">
+    <div class="logo-tag">OPERATION ON HOLD</div>
+    <h2>PAUSED</h2>
+    <p id="pause-perks"></p>
+    <button id="resume" class="primary">RESUME <span>▶</span></button>
+    <div class="menu-row"><button id="pause-settings" class="text-button">⚙ SETTINGS</button><button id="quit" class="text-button">⟵ MAIN MENU</button></div>
+  </div>
+</div>
+
+<div id="result" class="modal hidden">
+  <div class="modal-card wide">
+    <div class="logo-tag" id="result-tag">OPERATION COMPLETE</div>
+    <h2 id="result-title">SECTOR SECURED.</h2>
+    <div id="result-stats" class="stats-grid"></div>
+    <p id="result-note"></p>
+    <button id="again" class="primary">DEPLOY AGAIN <span>▶</span></button>
+    <button id="result-menu" class="text-button">⟵ MAIN MENU</button>
+  </div>
+</div>
+
+<div id="settings" class="modal hidden">
+  <div class="settings-card">
+    <div class="settings-head"><h2>SETTINGS</h2><div id="settings-tabs"></div></div>
+    <div id="settings-body"></div>
+    <div class="settings-foot"><span class="hint">Changes apply instantly · LB / RB switch tabs</span><button id="settings-close" class="primary slim">DONE</button></div>
+  </div>
+</div>
+
+<div id="help" class="modal hidden">
+  <div class="modal-card wide help-card">
+    <div class="logo-tag">FIELD MANUAL</div>
+    <h2>CONTROLS</h2>
+    <div class="help-cols">
+      <div><h3>TOUCH</h3>
+        <p><b>Left thumb</b> anywhere on the left: floating joystick. Push to the edge to sprint.</p>
+        <p><b>Right thumb</b>: drag to look. Hold <b>FIRE</b> and drag to aim while shooting.</p>
+        <p><b>JUMP</b>: tap to hop, hold in the air for the jetpack. Land on cover and containers.</p>
+        <p><b>AIM</b> zooms (the Longshot uses a scope). Gyro aiming is in Settings.</p>
+      </div>
+      <div><h3>CONTROLLER</h3>
+        <p><kbd class="rt">RT</kbd> fire · <kbd class="lt">LT</kbd> aim · <kbd class="a">A</kbd> jump / jetpack · <kbd class="b">B</kbd> dash</p>
+        <p><kbd class="x">X</kbd> reload · <kbd class="y">Y</kbd> next gun · <kbd class="lb">LB</kbd> grenade · <kbd>R3</kbd> toggle aim</p>
+        <p><kbd>D-pad</kbd> cycle guns · <kbd>Start</kbd> pause. In menus: D-pad moves, <kbd class="a">A</kbd> selects, <kbd class="b">B</kbd> goes back.</p>
+        <h3>KEYBOARD</h3>
+        <p>WASD move · mouse look (double-click to lock) · Space jump · Shift sprint · C dash · R reload · G grenade · Q aim · 1–0 guns · Esc pause</p>
+      </div>
+    </div>
+    <button id="help-close" class="primary slim">GOT IT</button>
+  </div>
+</div>
+
+<div id="rotate"><span>↻</span><h2>ROTATE TO DEPLOY</h2><p>Play in landscape for two-thumb controls.</p></div>
+<div id="error" class="modal hidden"><div class="modal-card"><h2>GRAPHICS UNAVAILABLE</h2><p id="error-text">This game needs WebGL. Update Android System WebView and reopen the app.</p></div></div>
+<script>addEventListener("error",function(e){var p=document.getElementById("error");p.classList.remove("hidden");document.getElementById("error-text").textContent="The game hit an error starting up. Update Android System WebView and reopen Aurelia Strike. "+(e.message||"");});</script>
+<script src="renderer.js"></script>
+<script src="audio.js"></script>
+<script src="world.js"></script>
+<script src="models.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
