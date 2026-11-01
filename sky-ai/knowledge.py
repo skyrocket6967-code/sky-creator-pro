@@ -333,6 +333,8 @@ def check_guards(guards, reply, context):
             continue
         for sentence in split_sentences(reply):
             s = sentence.lower()
+            if g.get("same_sentence") and not any(a in s for a in g.get("about", [])):
+                continue  # e.g. "I'm Sky AI. Get Sky Theft at skytheft.net." is fine
             hits = [f for f in g.get("forbid", []) if _mentions(f, s)]
             if not hits:
                 continue

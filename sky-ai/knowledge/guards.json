@@ -1,8 +1,31 @@
 [
   {
     "name": "sky-theft-distribution",
-    "about": ["sky theft", "skytheft"],
-    "forbid": ["steam", "epic games store", "epic store", "microsoft store", "itch.io", "gog", "game pass"],
+    "about": [
+      "sky theft",
+      "skytheft"
+    ],
+    "forbid": [
+      "steam",
+      "epic games store",
+      "epic store",
+      "microsoft store",
+      "itch.io",
+      "gog",
+      "game pass"
+    ],
     "fact": "Sky Theft has never been released on Steam or any other store. It is only available from the official website, skytheft.net."
+  },
+  {
+    "name": "sky-ai-distribution",
+    "about": [
+      "sky ai"
+    ],
+    "forbid": [
+      "skytheft.net",
+      "skytheft"
+    ],
+    "same_sentence": true,
+    "fact": "Sky AI is downloaded from GitHub (github.com/skyrocket6967-code/sky-creator-pro, in the sky-ai folder), not from skytheft.net. skytheft.net is only for the game Sky Theft."
   }
 ]

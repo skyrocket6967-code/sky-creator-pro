@@ -15,7 +15,11 @@ Sky AI is Sky the Goat's own AI assistant: **Qwen3** fine-tuned with **4-bit QLo
 | `websearch.py` | Optional web search (DuckDuckGo, Wikipedia fallback), standard library only |
 | `knowledge/*.md` | **Verified project facts** Sky AI reads at answer time. Edit these, no retraining needed |
 | `knowledge/guards.json` | Claims Sky AI must never make, such as "Sky Theft is on Steam" |
-| `data/*.jsonl` | Training conversations, one file per topic (481 total) |
+| `data/*.jsonl` | Training conversations, one file per topic (491 total) |
+
+## Where to get Sky AI
+
+Sky AI is downloaded from GitHub, **https://github.com/skyrocket6967-code/sky-creator-pro** (the `sky-ai` folder): click **Code → Download ZIP**. It is not on skytheft.net, which is only for the game Sky Theft. Sky AI knows this from `knowledge/sky_ai.md`, and a guard stops it from saying otherwise.
 
 ## Quick start
 
